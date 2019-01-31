@@ -44,6 +44,8 @@ class SCRYPTAKEY {
         let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
         wallethex += cipher.final('hex');
 
+        walletstore = lyrapub + ':' + wallethex;
+
         // SAVE ENCRYPTED VERION IN COOKIE
         if(saveKey == true){
             if(window.location.hostname == 'localhost'){
@@ -51,7 +53,7 @@ class SCRYPTAKEY {
             }else{
                 var cookie_secure = true;
             }
-            cookies.set('scrypta_key', wallethex, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
+            cookies.set('scrypta_key', walletstore, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
         }
 
         return Promise.resolve(true);
@@ -79,13 +81,15 @@ class SCRYPTAKEY {
     static async readKey(password = ''){
         var scryptakey_cookie = cookies.get('scrypta_key');
         if(password !== ''){
+            scryptakey_split = scryptakey_cookie.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(scryptakey_cookie,'hex','utf8');
+                var dec = decipher.update(scryptakey_cookie[1],'hex','utf8');
                 dec += decipher.final('utf8');
                 var $scryptakey_cookie = JSON.parse(dec);
                 this.sAPIKey = $scryptakey_cookie;
-                this.RAWsAPIKey = scryptakey_cookie;
+                this.pubaddress = scryptakey_split[0];
+                this.RAWsAPIKey = scryptakey_cookie[1];
                 return Promise.resolve(true);
             } catch (ex) {
                 console.log('WRONG PASSWORD')
