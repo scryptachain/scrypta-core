@@ -3,12 +3,15 @@ var CoinKey = require('coinkey');
 var crypto = require('crypto');
 var cookies = require('browser-cookies');
 var NodeRSA = require('node-rsa');
+var axios = require('axios');
 
 const lyraInfo = {
     private: 0xae,
     public: 0x30,
     scripthash: 0x0d
 };
+
+const idanodes = ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org','idanode04.scryptachain.org'];
 
 class SCRYPTAKEY {
     constructor (){
@@ -44,8 +47,7 @@ class SCRYPTAKEY {
         let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
         wallethex += cipher.final('hex');
 
-        walletstore = lyrapub + ':' + wallethex;
-
+        var walletstore = lyrapub + ':' + wallethex;
         // SAVE ENCRYPTED VERION IN COOKIE
         if(saveKey == true){
             if(window.location.hostname == 'localhost'){
@@ -81,10 +83,10 @@ class SCRYPTAKEY {
     static async readKey(password = ''){
         var scryptakey_cookie = cookies.get('scrypta_key');
         if(password !== ''){
-            scryptakey_split = scryptakey_cookie.split(':');
+            var scryptakey_split = scryptakey_cookie.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(scryptakey_cookie[1],'hex','utf8');
+                var dec = decipher.update(scryptakey_split[1],'hex','utf8');
                 dec += decipher.final('utf8');
                 var $scryptakey_cookie = JSON.parse(dec);
                 this.sAPIKey = $scryptakey_cookie;
@@ -107,6 +109,7 @@ class SCRYPTAKEY {
         cookies.set('scrypta_key', "", {secure: cookie_secure, domain: window.location.hostname, expires: 0, samesite: 'Strict'});
         return true;
     }
+
 
 }
 

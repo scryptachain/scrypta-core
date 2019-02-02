@@ -18,9 +18,11 @@
     "webpack-merge": "^4.1.4"
   },
   "dependencies": {
+    "axios": "^0.18.0",
     "browser-cookies": "^1.2.0",
     "clean-webpack-plugin": "^1.0.0",
     "coinkey": "^3.0.0",
+    "ecdsa": "^0.7.0",
     "html-webpack-plugin": "^3.2.0",
     "lodash": "^4.17.11",
     "node-rsa": "^1.0.1",
