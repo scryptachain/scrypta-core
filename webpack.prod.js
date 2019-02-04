@@ -6,7 +6,7 @@ module.exports = env => {
     return {
         mode: 'production',
         entry: {
-            dapi: './src/scrypta.js'
+            scryptacore: './src/scrypta.js'
         }
     }
 };
