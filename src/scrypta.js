@@ -3,7 +3,6 @@ var CoinKey = require('coinkey');
 var crypto = require('crypto');
 var cookies = require('browser-cookies');
 var NodeRSA = require('node-rsa');
-var axios = require('axios');
 
 const lyraInfo = {
     private: 0xae,
@@ -11,14 +10,16 @@ const lyraInfo = {
     scripthash: 0x0d
 };
 
-const idanodes = ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org','idanode04.scryptachain.org'];
-
-class SCRYPTAKEY {
+class ScryptaCore {
     constructor (){
-        this.sAPIKey = '';
         this.RAWsAPIKey = '';
+        this.PubAddress = '';
     }
     
+    static returnNodes(){
+        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org','idanode04.scryptachain.org'];
+    }
+
     static async createAddress(password, saveKey = true){
         // LYRA WALLET
         var ck = new CoinKey.createRandom(lyraInfo)
@@ -39,8 +40,8 @@ class SCRYPTAKEY {
         
         // STORE JUST LYRA WALLET 
         var wallet = {
-            pub: lyrapub,
-            prv: lyraprv
+            prv: lyraprv,
+            api_secret: api_secret
         };
 
         const cipher = crypto.createCipher('aes-256-cbc', password);
@@ -57,8 +58,11 @@ class SCRYPTAKEY {
             }
             cookies.set('scrypta_key', walletstore, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
         }
-
-        return Promise.resolve(true);
+        var response = {
+            pub: lyrapub,
+            api_secret: api_secret
+        }
+        return response;
     }
 
     static async saveKey(key){
@@ -72,27 +76,31 @@ class SCRYPTAKEY {
     }
 
     static keyExsist(){
-        var scryptakey_cookie = cookies.get('scrypta_key');
-        if(scryptakey_cookie !== null && scryptakey_cookie !== ''){
-            return true
+        var ScryptaCore_cookie = cookies.get('scrypta_key');
+        if(ScryptaCore_cookie !== null && ScryptaCore_cookie !== ''){
+            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            if(ScryptaCore_split[0].length > 0){
+                this.PubAddress = ScryptaCore_split[0];
+                this.RAWsAPIKey = ScryptaCore_split[1];
+                return ScryptaCore_split[0];
+            } else {
+                return false
+            }
         }else{
             return false
         }
     }
 
     static async readKey(password = ''){
-        var scryptakey_cookie = cookies.get('scrypta_key');
+        var ScryptaCore_cookie = cookies.get('scrypta_key');
         if(password !== ''){
-            var scryptakey_split = scryptakey_cookie.split(':');
+            var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(scryptakey_split[1],'hex','utf8');
+                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
                 dec += decipher.final('utf8');
-                var $scryptakey_cookie = JSON.parse(dec);
-                this.sAPIKey = $scryptakey_cookie;
-                this.pubaddress = scryptakey_split[0];
-                this.RAWsAPIKey = scryptakey_cookie[1];
-                return Promise.resolve(true);
+                var $ScryptaCore_cookie = JSON.parse(dec);
+                return Promise.resolve($ScryptaCore_cookie);
             } catch (ex) {
                 console.log('WRONG PASSWORD')
                 return Promise.resolve(false);
@@ -113,4 +121,4 @@ class SCRYPTAKEY {
 
 }
 
-window.SCRYPTAKEY = SCRYPTAKEY
+window.ScryptaCore = ScryptaCore
