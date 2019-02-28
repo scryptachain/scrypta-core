@@ -37,8 +37,8 @@ class ScryptaCore {
         var lyraprv = ck.privateWif;
         var lyrakey = ck.publicKey.toString('hex');
 
-        console.log("CREATED PUB ADDRESS: " + lyrapub);
-        console.log("CREATED PUB KEY: " + lyrakey);
+        //console.log("CREATED PUB ADDRESS: " + lyrapub);
+        //console.log("CREATED PUB KEY: " + lyrakey);
         
         // STORE JUST LYRA WALLET 
         var wallet = {
@@ -46,8 +46,6 @@ class ScryptaCore {
             api_secret: api_secret,
             key: lyrakey
         };
-
-        console.log(lyraprv);
 
         const cipher = crypto.createCipher('aes-256-cbc', password);
         let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
@@ -66,7 +64,8 @@ class ScryptaCore {
         }
         var response = {
             pub: lyrapub,
-            api_secret: api_secret
+            api_secret: api_secret,
+            key: lyrakey
         }
         return response;
     }
