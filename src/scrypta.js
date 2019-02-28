@@ -35,20 +35,26 @@ class ScryptaCore {
         
         var lyrapub = ck.publicAddress;
         var lyraprv = ck.privateWif;
+        var lyrakey = ck.publicKey.toString('hex');
 
         console.log("CREATED PUB ADDRESS: " + lyrapub);
+        console.log("CREATED PUB KEY: " + lyrakey);
         
         // STORE JUST LYRA WALLET 
         var wallet = {
             prv: lyraprv,
-            api_secret: api_secret
+            api_secret: api_secret,
+            key: lyrakey
         };
+
+        console.log(lyraprv);
 
         const cipher = crypto.createCipher('aes-256-cbc', password);
         let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
         wallethex += cipher.final('hex');
 
         var walletstore = lyrapub + ':' + wallethex;
+        
         // SAVE ENCRYPTED VERION IN COOKIE
         if(saveKey == true){
             if(window.location.hostname == 'localhost'){
@@ -63,6 +69,12 @@ class ScryptaCore {
             api_secret: api_secret
         }
         return response;
+    }
+
+    static async getPublicKey(privateWif){
+        var ck = new CoinKey.fromWif(privateWif);
+        var pubkey = ck.publicKey.toString('hex');
+        return pubkey;
     }
 
     static async saveKey(key){
