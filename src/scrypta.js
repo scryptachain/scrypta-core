@@ -65,7 +65,8 @@ class ScryptaCore {
         var response = {
             pub: lyrapub,
             api_secret: api_secret,
-            key: lyrakey
+            key: lyrakey,
+            prv: lyraprv
         }
         return response;
     }
