@@ -44,7 +44,9 @@ class ScryptaCore {
         var wallet = {
             prv: lyraprv,
             api_secret: api_secret,
-            key: lyrakey
+            key: lyrakey,
+            rsapub: pub,
+            rsaprv: pk
         };
 
         const cipher = crypto.createCipher('aes-256-cbc', password);
