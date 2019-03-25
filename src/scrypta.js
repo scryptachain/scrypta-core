@@ -3,6 +3,14 @@ var CoinKey = require('coinkey');
 var crypto = require('crypto');
 var cookies = require('browser-cookies');
 var NodeRSA = require('node-rsa');
+var axios = require('axios');
+require ('./sign/crypto-min.js');
+require ('./sign/crypto-sha256.js');
+require ('./sign/crypto-sha256-hmac.js');
+require ('./sign/ripemd160.js');
+require ('./sign/jsbn.js');
+require ('./sign/ellipticcurve.js');
+require ('./sign/bitTrx.js');
 
 const lyraInfo = {
     private: 0xae,
@@ -17,7 +25,25 @@ class ScryptaCore {
     }
     
     static returnNodes(){
-        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org','idanode04.scryptachain.org'];
+        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org'];
+    }
+    
+    static async checkNode(node){
+        const response = await axios.get('https://' + node + '/check')
+        return response;
+    }
+
+    static async connectNode(){
+        var checknodes = this.returnNodes()
+        var connected = false
+        while(connected === false){
+            var checknode = checknodes[Math.floor(Math.random()*checknodes.length)];
+            const check = await this.checkNode(checknode)
+            if(check.status === 200){
+                connected = true
+                return Promise.resolve(check.data.name)
+            }
+        }
     }
 
     static async createAddress(password, saveKey = true){
@@ -70,6 +96,13 @@ class ScryptaCore {
             key: lyrakey,
             prv: lyraprv
         }
+        return response;
+    }
+
+    static async initAddress(address){
+        const app = this
+        const node = await app.connectNode();
+        const response = await axios.post('https://' + node + '/init', {address: address})
         return response;
     }
 
@@ -132,6 +165,93 @@ class ScryptaCore {
         return true;
     }
 
+    static async listUnspent(address){
+        const app = this
+        const node = await app.connectNode();
+        if(node !== undefined){
+            var unspent = await axios.post(
+                'https://' + node + '/listunspent',
+                { address: address }
+            )
+            return unspent.data.data
+        } else {
+            return Promise.resolve(false)
+        }
+    }
+
+    static async sendRawTransaction(rawtransaction){
+        const app = this
+        const node = await app.connectNode();
+        if(node !== undefined){
+            var txid = await axios.post(
+                'https://' + node + '/sendrawtransaction',
+                { rawtransaction: rawtransaction }
+            )
+            return txid.data.data
+        } else {
+            return Promise.resolve(false)
+        }
+    }
+
+    static async send(password = '', send = false, to, amount, metadata = ''){
+        var ScryptaCore_cookie = cookies.get('scrypta_key');
+        if(password !== ''){
+            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            try {
+                var decipher = crypto.createDecipher('aes-256-cbc', password);
+                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
+                dec += decipher.final('utf8');
+                var $ScryptaCore_cookie = JSON.parse(dec);
+
+                var trx = bitjs.transaction();
+                var from = ScryptaCore_split[0]
+                var unspent = await this.listUnspent(from)
+                var fees = 0.001
+                if(unspent.length > 0){
+                    var inputamount = 0;
+                    for (var i=0; i < unspent.length; i++){
+                        if(inputamount <= amount){
+                            var txid = unspent[i]['txid'];
+                            var index = unspent[i]['vout'];
+                            var script = unspent[i]['scriptPubKey'];
+                            trx.addinput(txid,index,script);
+                            inputamount += unspent[i]['amount']
+                        }
+                    }
+                    var amountneed = amount + fees;
+                    if(inputamount >= amountneed){
+                        var change = inputamount - amountneed;
+                        trx.addoutput(to,amount);
+                        
+                        if(change > 0.00001){
+                            trx.addoutput(from,change);
+                        }
+
+                        if(metadata !== ''){
+                            trx.addmetadata(metadata);
+                        }
+
+                        var wif = $ScryptaCore_cookie.prv;
+                        var signed = trx.sign(wif,1);
+
+                        if(send === false){
+                            return Promise.resolve(signed);
+                        } else {
+                            var txid = await this.sendRawTransaction(signed)
+                            return Promise.resolve(txid)
+                        }
+                    }else{
+                        return Promise.resolve(false) //NOT ENOUGH FUNDS
+                    }
+                } else {
+                    return Promise.resolve(false) //NOT ENOUGH FUNDS
+                }
+            } catch (ex) {
+                console.log('WRONG PASSWORD')
+                return Promise.resolve(false);
+            }
+        }
+    }
 
 }
 
