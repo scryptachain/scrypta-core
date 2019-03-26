@@ -121,15 +121,21 @@
 			var o = {};
 			var buf = [];
 			o.value = 0;
-			 //OP_RETURN
-			buf.push(Crypto.util.hexToBytes('6a')[0]);
-			buf.push(Crypto.util.hexToBytes('04')[0]);
-			buf.push(Crypto.util.hexToBytes('68')[0]);
-			buf.push(Crypto.util.hexToBytes('6f')[0]);
-			buf.push(Crypto.util.hexToBytes('6c')[0]);
-			buf.push(Crypto.util.hexToBytes('61')[0]);
-			o.script = buf;
-			return this.outputs.push(o);
+			if(data.length <= 74){
+				var bytes = Buffer.from(data)
+				buf.push(Crypto.util.hexToBytes('6a')[0]);
+				var ln = bitjs.numToByteArray(data.length)
+				buf.push(ln[0]);
+				for(var i=0; i<bytes.length; i++){
+					if(bytes[i] !== undefined){
+						buf.push(bytes[i]);
+					}
+				}
+				o.script = buf;
+				return this.outputs.push(o);
+			} else {
+				console.log('METADATA TOO LONG')
+			}
 		}
 
 		// Only standard addresses

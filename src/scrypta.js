@@ -186,7 +186,9 @@ class ScryptaCore {
             var txid = await axios.post(
                 'https://' + node + '/sendrawtransaction',
                 { rawtransaction: rawtransaction }
-            )
+            ).catch(function(err){
+                console.log(err)
+            })
             return txid.data.data
         } else {
             return Promise.resolve(false)
@@ -238,6 +240,7 @@ class ScryptaCore {
                             return Promise.resolve(signed);
                         } else {
                             var txid = await this.sendRawTransaction(signed)
+                            console.log("TX SENT: "+txid)
                             return Promise.resolve(txid)
                         }
                     }else{
@@ -246,8 +249,8 @@ class ScryptaCore {
                 } else {
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
-            } catch (ex) {
-                console.log('WRONG PASSWORD')
+            } catch (error) {
+                console.log(error)
                 return Promise.resolve(false);
             }
         }
