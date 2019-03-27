@@ -121,9 +121,12 @@
 			var o = {};
 			var buf = [];
 			o.value = 0;
-			if(data.length <= 74){
+			if(data.length <= 80){
 				var bytes = Buffer.from(data)
 				buf.push(Crypto.util.hexToBytes('6a')[0]);
+				if(data.length > 75){
+					buf.push(Crypto.util.hexToBytes('4c')[0]);
+				}
 				var ln = bitjs.numToByteArray(data.length)
 				buf.push(ln[0]);
 				for(var i=0; i<bytes.length; i++){
