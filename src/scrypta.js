@@ -2,7 +2,6 @@ import _ from 'lodash';
 var CoinKey = require('coinkey');
 var crypto = require('crypto');
 var cookies = require('browser-cookies');
-var NodeRSA = require('node-rsa');
 var axios = require('axios');
 require ('./sign/crypto-min.js');
 require ('./sign/crypto-sha256.js');
@@ -53,11 +52,6 @@ class ScryptaCore {
         // SIMMETRIC KEY
         var buf = crypto.randomBytes(16);
         var api_secret = buf.toString('hex');
-
-        // ASYMMETRIC KEY
-        const key = new NodeRSA({b: 512});
-        var pk = key.exportKey('pkcs8-private');
-        var pub = key.exportKey('pkcs8-public');
         
         var lyrapub = ck.publicAddress;
         var lyraprv = ck.privateWif;
@@ -70,9 +64,7 @@ class ScryptaCore {
         var wallet = {
             prv: lyraprv,
             api_secret: api_secret,
-            key: lyrakey,
-            rsapub: pub,
-            rsaprv: pk
+            key: lyrakey
         };
 
         const cipher = crypto.createCipher('aes-256-cbc', password);
