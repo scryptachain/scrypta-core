@@ -130,8 +130,12 @@ class ScryptaCore {
         }
     }
 
-    static async readKey(password = ''){
-        var ScryptaCore_cookie = cookies.get('scrypta_key');
+    static async readKey(password = '', $key = ''){
+        if($key === ''){
+            var ScryptaCore_cookie = cookies.get('scrypta_key');
+        }else{
+            var ScryptaCore_cookie = $key;
+        }
         if(password !== ''){
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
@@ -187,8 +191,12 @@ class ScryptaCore {
         }
     }
 
-    static async send(password = '', send = false, to, amount, metadata = '', fees = 0.001){
-        var ScryptaCore_cookie = cookies.get('scrypta_key');
+    static async send(password = '', send = false, to, amount, metadata = '', fees = 0.001, key = ''){
+        if(key === ''){
+            var ScryptaCore_cookie = cookies.get('scrypta_key');
+        }else{
+            var ScryptaCore_cookie = key;
+        }
         if(password !== ''){
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
@@ -250,9 +258,13 @@ class ScryptaCore {
         }
     }
 
-    static async write(password, metadata, collection = '', refID = '', protocol = ''){
+    static async write(password, metadata, collection = '', refID = '', protocol = '', key = ''){
         if(password !== '' && metadata !== ''){
-            var ScryptaCore_cookie = cookies.get('scrypta_key');
+            if(key === ''){
+                var ScryptaCore_cookie = cookies.get('scrypta_key');
+            }else{
+                var ScryptaCore_cookie = key;
+            }
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
