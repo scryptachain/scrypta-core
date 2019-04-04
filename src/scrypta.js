@@ -86,7 +86,8 @@ class ScryptaCore {
             pub: lyrapub,
             api_secret: api_secret,
             key: lyrakey,
-            prv: lyraprv
+            prv: lyraprv,
+            walletstore: walletstore
         }
         return response;
     }
