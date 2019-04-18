@@ -24,7 +24,7 @@ class ScryptaCore {
     }
     
     static returnNodes(){
-        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org'];
+        return ['idanode01.scryptachain.org'];
     }
     
     static async checkNode(node){
@@ -261,12 +261,14 @@ class ScryptaCore {
 
     static async write(password, metadata, collection = '', refID = '', protocol = '', key = ''){
         if(password !== '' && metadata !== ''){
+            console.log(key)
             if(key === ''){
                 var ScryptaCore_cookie = cookies.get('scrypta_key');
+                var ScryptaCore_split = ScryptaCore_cookie.split(':');
             }else{
-                var ScryptaCore_cookie = key;
+                var ScryptaCore_split = key.split(':');
             }
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+        
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
                 var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
@@ -274,7 +276,6 @@ class ScryptaCore {
                 var $ScryptaCore_cookie = JSON.parse(dec);
                 
                 var wallet = ScryptaCore_split[0]
-
                 var Uuid = require('uuid/v4')
                 var uuid = Uuid().replace(new RegExp('-', 'g'), '.')
 
