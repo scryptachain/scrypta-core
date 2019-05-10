@@ -17,7 +17,7 @@ const lyraInfo = {
     scripthash: 0x0d
 };
 
-class ScryptaCore {
+export default class ScryptaCore {
     constructor (){
         this.RAWsAPIKey = '';
         this.PubAddress = '';
