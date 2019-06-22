@@ -58,7 +58,6 @@ export default class BitJS {
 		this.pub = 0x30;
 		this.priv = 0xae;
 		this.compressed = true;
-
 	}
 	
 	static hexToBytes(b){for(var a=[],c=0;c<b.length;c+=2)a.push(parseInt(b.substr(c,2),16));return a}

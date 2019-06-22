@@ -3,7 +3,7 @@ var CoinKey = require('coinkey')
 var crypto = require('crypto')
 var cookies = require('browser-cookies')
 var axios = require('axios')
-import bitjs from './sign/trx.js'
+import Trx from './trx/trx.js'
 
 const lyraInfo = {
     private: 0xae,
@@ -252,7 +252,7 @@ export default class ScryptaCore {
                 dec += decipher.final('utf8');
                 var $ScryptaCore_cookie = JSON.parse(dec);
 
-                var trx = bitjs.transaction();
+                var trx = Trx.transaction();
                 var from = ScryptaCore_split[0]
                 var unspent = await this.listUnspent(from)
                 if(unspent.length > 0){
