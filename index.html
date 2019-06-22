@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title><%= htmlWebpackPlugin.options.title %></title>
+  </head>
+  <body style="text-align:center;">
+    <div style="margin:20px auto; width:768px; display:inline-block;">
+        <h1>ScryptaCoreJS</h1>
+        <button onClick="getNewAddress()">CREATE NEW ADDRESS</button>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
+        <button onClick="testWrite()">TEST WRITE</button>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="writeresponse"></pre>
+    </div>
+    <script>
+        function getNewAddress(){
+            window.ScryptaCore.createAddress('test').then(response => {
+                document.getElementById('newaddressresponse').innerHTML = JSON.stringify(response)
+            })
+        }
+
+        function testWrite(){
+            var address = 'LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2'
+            var pubkey = '03a2b152761ab5b8aedbb07dea15dedacf12a68abd8b73a4f99a6f1f322792ee27'
+            var privkey = 'Sq9GWa9vyM1HghsnVan5UJhtx2GumTaLBTHgDhCW4abjzZLmsYmr'
+            var password = 'test'
+            var metadata = 'Qmb8PCFSp9uSUJr3eLafiTyAqcHaq2TBk4kj4wAEDG2zQo'
+            var protocol = 'dapp://'
+
+            window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
+                window.ScryptaCore.write(password, metadata, '', '', protocol, '').then(response => {
+                    document.getElementById('writeresponse').innerHTML = JSON.stringify(response)
+                })
+            })
+        }
+    </script>
+  </body>
+</html>

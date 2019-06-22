@@ -1,15 +1,9 @@
-import _ from 'lodash';
-var CoinKey = require('coinkey');
-var crypto = require('crypto');
-var cookies = require('browser-cookies');
-var axios = require('axios');
-require ('./sign/crypto-min.js');
-require ('./sign/crypto-sha256.js');
-require ('./sign/crypto-sha256-hmac.js');
-require ('./sign/ripemd160.js');
-require ('./sign/jsbn.js');
-require ('./sign/ellipticcurve.js');
-require ('./sign/bitTrx.js');
+import _ from 'lodash'
+var CoinKey = require('coinkey')
+var crypto = require('crypto')
+var cookies = require('browser-cookies')
+var axios = require('axios')
+import bitjs from './sign/trx.js'
 
 const lyraInfo = {
     private: 0xae,
@@ -22,9 +16,9 @@ export default class ScryptaCore {
         this.RAWsAPIKey = '';
         this.PubAddress = '';
     }
-    
+
     static returnNodes(){
-        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org'];
+        return ['idanode01.scryptachain.org'];
     }
     
     static async checkNode(node){
@@ -90,6 +84,58 @@ export default class ScryptaCore {
             walletstore: walletstore
         }
         return response;
+    }
+
+    static async restoreAddress(address, pubkey, privkey, password, saveKey = true){
+        
+        if(address !== undefined && address.length > 0 && 
+            pubkey !== undefined && pubkey.length > 0 && 
+            privkey !== undefined && privkey.length > 0 && 
+            password !== undefined && password.length > 0){
+        
+            // SIMMETRIC KEY
+            var buf = crypto.randomBytes(16);
+            var api_secret = buf.toString('hex');
+            
+            var lyrapub = address;
+            var lyraprv = privkey;
+            var lyrakey = pubkey;
+            
+            // STORE JUST LYRA WALLET 
+            var wallet = {
+                prv: lyraprv,
+                api_secret: api_secret,
+                key: lyrakey
+            };
+
+            const cipher = crypto.createCipher('aes-256-cbc', password);
+            let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
+            wallethex += cipher.final('hex');
+
+            var walletstore = lyrapub + ':' + wallethex;
+            
+            // SAVE ENCRYPTED VERION IN COOKIE
+            if(saveKey == true){
+                if(window.location.hostname == 'localhost'){
+                    var cookie_secure = false;
+                }else{
+                    var cookie_secure = true;
+                }
+                cookies.set('scrypta_key', walletstore, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
+            }
+
+            var response = {
+                pub: lyrapub,
+                api_secret: api_secret,
+                key: lyrakey,
+                prv: lyraprv,
+                walletstore: walletstore
+            }
+            return response;
+        }else{
+            return false;
+        }
+
     }
 
     static async initAddress(address){
@@ -398,4 +444,6 @@ export default class ScryptaCore {
     }
 }
 
-window.ScryptaCore = ScryptaCore
+if(window){
+    window.ScryptaCore = ScryptaCore
+}

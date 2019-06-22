@@ -15,7 +15,8 @@ module.exports = env => {
         plugins: [
             new CleanWebpackPlugin(['dist']),
             new HtmlWebpackPlugin({
-            title: 'ScryptaCore'
+                title: 'ScryptaCore',
+                template: 'index.html'
             })
         ],
         output: {

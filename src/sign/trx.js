@@ -1,21 +1,77 @@
-(function () {
+require ('./jsbn.js')
+require ('./ellipticcurve.js')
+require ('./ripemd160.js')
+require ('./crypto-sha256-hmac.js')
 
-	var bitjs = window.bitjs = function () { };
+var B58 = {
+	alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+	validRegex: /^[1-9A-HJ-NP-Za-km-z]+$/,
+	base: BigInteger.valueOf(58),
+	encode: function (input) {
+		var bi = BigInteger.fromByteArrayUnsigned(input);
+		var chars = [];
 
-	/* public vars */
-	bitjs.pub = 0x30;
-	bitjs.priv = 0xae;
-	bitjs.compressed = true;
+		while (bi.compareTo(B58.base) >= 0) {
+			var mod = bi.mod(B58.base);
+			chars.unshift(B58.alphabet[mod.intValue()]);
+			bi = bi.subtract(mod).divide(B58.base);
+		}
+		chars.unshift(B58.alphabet[bi.intValue()]);
+
+		// Convert leading zeros too.
+		for (var i = 0; i < input.length; i++) {
+			if (input[i] == 0x00) {
+				chars.unshift(B58.alphabet[0]);
+			} else break;
+		}
+
+		return chars.join('');
+	},
+	decode: function (input) {
+		var bi = BigInteger.valueOf(0);
+		var leadingZerosNum = 0;
+		for (var i = input.length - 1; i >= 0; i--) {
+			var alphaIndex = B58.alphabet.indexOf(input[i]);
+			if (alphaIndex < 0) {
+				throw "Invalid character";
+			}
+			bi = bi.add(BigInteger.valueOf(alphaIndex)
+							.multiply(B58.base.pow(input.length - 1 - i)));
+
+			// This counts leading zero bytes
+			if (input[i] == "1") leadingZerosNum++;
+			else leadingZerosNum = 0;
+		}
+		var bytes = bi.toByteArrayUnsigned();
+
+		// Add leading zeros
+		while (leadingZerosNum-- > 0) bytes.unshift(0);
+
+		return bytes;
+	}
+}
+
+export default class BitJS {
+
+	constructor (){
+		/* public vars */
+		this.pub = 0x30;
+		this.priv = 0xae;
+		this.compressed = true;
+
+	}
 	
-	/* provide a privkey and return an WIF  */
-	bitjs.privkey2wif = function(h){
-		var r = Crypto.util.hexToBytes(h);
+	static hexToBytes(b){for(var a=[],c=0;c<b.length;c+=2)a.push(parseInt(b.substr(c,2),16));return a}
+	static bytesToHex(b){for(var a=[],c=0;c<b.length;c++)a.push((b[c]>>>4).toString(16)),a.push((b[c]&15).toString(16));return a.join("")}
 
-		if(bitjs.compressed==true){
+	static privkey2wif(h){
+		var r = BitJS.hexToBytes(h);
+
+		if(this.compressed==true){
 			r.push(0x0d);
 		}
 
-		r.unshift(bitjs.priv);
+		r.unshift(this.priv);
 		var hash = Crypto.SHA256(Crypto.SHA256(r, {asBytes: true}), {asBytes: true});
 		var checksum = hash.slice(0, 4);
 
@@ -23,7 +79,7 @@
 	}
 
 	/* convert a wif key back to a private key */
-	bitjs.wif2privkey = function(wif){
+	static wif2privkey (wif){
 		var compressed = false;
 		var decode = B58.decode(wif);
 		var key = decode.slice(0, decode.length-4);
@@ -32,28 +88,28 @@
 			key = key.slice(0, key.length-1);
 			compressed = true;
 		}
-		return {'privkey': Crypto.util.bytesToHex(key), 'compressed':compressed};
+		return {'privkey': BitJS.bytesToHex(key), 'compressed':compressed};
 	}
 
 	/* convert a wif to a pubkey */
-	bitjs.wif2pubkey = function(wif){
-		var compressed = bitjs.compressed;
-		var r = bitjs.wif2privkey(wif);
-		bitjs.compressed = r['compressed'];
-		var pubkey = bitjs.newPubkey(r['privkey']);
-		bitjs.compressed = compressed;
+	static wif2pubkey(wif){
+		var compressed = this.compressed;
+		var r = BitJS.wif2privkey(wif);
+		this.compressed = r['compressed'];
+		var pubkey = this.newPubkey(r['privkey']);
+		this.compressed = compressed;
 		return {'pubkey':pubkey,'compressed':r['compressed']};
 	}
 
 	/* convert a wif to a address */
-	bitjs.wif2address = function(wif){
-		var r = bitjs.wif2pubkey(wif);
-		return {'address':bitjs.pubkey2address(r['pubkey']), 'compressed':r['compressed']};
+	static wif2address (wif){
+		var r = this.wif2pubkey(wif);
+		return {'address':this.pubkey2address(r['pubkey']), 'compressed':r['compressed']};
 	}
 	
 	/* generate a public key from a private key */
-	bitjs.newPubkey = function(hash){
-		var privateKeyBigInt = BigInteger.fromByteArrayUnsigned(Crypto.util.hexToBytes(hash));
+	static newPubkey(hash){
+		var privateKeyBigInt = BigInteger.fromByteArrayUnsigned(BitJS.hexToBytes(hash));
 		var curve = EllipticCurve.getSECCurveByName("secp256k1");
 
 		var curvePt = curve.getG().multiply(privateKeyBigInt);
@@ -64,29 +120,29 @@
 		publicKeyBytes = publicKeyBytes.concat(EllipticCurve.integerToBytes(y,32));
 		publicKeyBytes.unshift(0x04);
 
-		if(bitjs.compressed==true){
+		if(this.compressed==true){
 			var publicKeyBytesCompressed = EllipticCurve.integerToBytes(x,32)
 			if (y.isEven()){
 				publicKeyBytesCompressed.unshift(0x02)
 			} else {
 				publicKeyBytesCompressed.unshift(0x03)
 			}
-			return Crypto.util.bytesToHex(publicKeyBytesCompressed);
+			return BitJS.bytesToHex(publicKeyBytesCompressed);
 		} else {
-			return Crypto.util.bytesToHex(publicKeyBytes);
+			return BitJS.bytesToHex(publicKeyBytes);
 		}
 	}
 
 	/* provide a public key and return address */
-	bitjs.pubkey2address = function(h, byte){
-		var r = ripemd160(Crypto.SHA256(Crypto.util.hexToBytes(h), {asBytes: true}));
-		r.unshift(byte || bitjs.pub);
+	static pubkey2address(h, byte){
+		var r = ripemd160(Crypto.SHA256(BitJS.hexToBytes(h), {asBytes: true}));
+		r.unshift(byte || this.pub);
 		var hash = Crypto.SHA256(Crypto.SHA256(r, {asBytes: true}), {asBytes: true});
 		var checksum = hash.slice(0, 4);
 		return B58.encode(r.concat(checksum));
 	}
     
-	bitjs.transaction = function() {
+	static transaction() {
 		var btrx = {};
 		btrx.version = 1;
 		btrx.inputs = [];
@@ -97,7 +153,7 @@
 			var o = {};
 			o.outpoint = {'hash': txid, 'index': index};
 			//o.script = []; Signature and Public Key should be added after singning
-			o.script = Crypto.util.hexToBytes(script); //push previous output pubkey script
+			o.script = BitJS.hexToBytes(script); //push previous output pubkey script
 			o.sequence = sequence || ((btrx.locktime==0) ? 4294967295 : 0);
 			return this.inputs.push(o);
 		} 
@@ -123,11 +179,11 @@
 			o.value = 0;
 			if(data.length <= 80){
 				var bytes = Buffer.from(data)
-				buf.push(Crypto.util.hexToBytes('6a')[0]);
+				buf.push(BitJS.hexToBytes('6a')[0]);
 				if(data.length > 75){
-					buf.push(Crypto.util.hexToBytes('4c')[0]);
+					buf.push(BitJS.hexToBytes('4c')[0]);
 				}
-				var ln = bitjs.numToByteArray(data.length)
+				var ln = BitJS.numToByteArray(data.length)
 				buf.push(ln[0]);
 				for(var i=0; i<bytes.length; i++){
 					if(bytes[i] !== undefined){
@@ -146,16 +202,13 @@
 			var bytes = B58.decode(address);
 			var front = bytes.slice(0, bytes.length-4);
 			var back = bytes.slice(bytes.length-4);
-			var checksum = Crypto.SHA256(Crypto.SHA256(front, {asBytes: true}), {asBytes: true}).slice(0, 4);
-			if (checksum+""  ==  back+"") {
-				return front.slice(1);
-				}
+			return front.slice(1);
 		}
 
 		/* generate the transaction hash to sign from a transaction input */
 		btrx.transactionHash = function(index, sigHashType) {
 
-			var clone = bitjs.clone(this);
+			var clone = BitJS.clone(this);
 			var shType = sigHashType || 1;
 
 			/* black out all other ins, except this one */
@@ -220,10 +273,10 @@
 					}
 				}
 
-				var buffer = Crypto.util.hexToBytes(clone.serialize());
-				buffer = buffer.concat(bitjs.numToBytes(parseInt(shType), 4));
+				var buffer = BitJS.hexToBytes(clone.serialize());
+				buffer = buffer.concat(BitJS.numToBytes(parseInt(shType), 4));
 				var hash = Crypto.SHA256(buffer, {asBytes: true});
-				var r = Crypto.util.bytesToHex(Crypto.SHA256(hash, {asBytes: true}));
+				var r = BitJS.bytesToHex(Crypto.SHA256(hash, {asBytes: true}));
 				return r;
 			} else {
 				return false;
@@ -253,12 +306,12 @@
 			}
 
 			var shType = sigHashType || 1;
-			var hash = txhash || Crypto.util.hexToBytes(this.transactionHash(index, shType));
+			var hash = txhash || BitJS.hexToBytes(this.transactionHash(index, shType));
 
 			if(hash){
 				var curve = EllipticCurve.getSECCurveByName("secp256k1");
-				var key = bitjs.wif2privkey(wif);
-				var priv = BigInteger.fromByteArrayUnsigned(Crypto.util.hexToBytes(key['privkey']));
+				var key = BitJS.wif2privkey(wif);
+				var priv = BigInteger.fromByteArrayUnsigned(BitJS.hexToBytes(key['privkey']));
 				var n = curve.getN();
 				var e = BigInteger.fromByteArrayUnsigned(hash);
 				var badrs = 0
@@ -280,7 +333,7 @@
 				var sig = serializeSig(r, s);
 				sig.push(parseInt(shType, 10));
 
-				return Crypto.util.bytesToHex(sig);
+				return BitJS.bytesToHex(sig);
 			} else {
 				return false;
 			}
@@ -298,8 +351,8 @@
 
 			// some necessary things out of the way for clarity.
 			badrs = badrs || 0;
-			var key = bitjs.wif2privkey(wif);
-			var x = Crypto.util.hexToBytes(key['privkey'])
+			var key = BitJS.wif2privkey(wif);
+			var x = BitJS.hexToBytes(key['privkey'])
 			var curve = EllipticCurve.getSECCurveByName("secp256k1");
 			var N = curve.getN();
 
@@ -350,14 +403,14 @@
 		
     	/* sign a "standard" input */
 		btrx.signinput = function(index, wif, sigHashType){
-			var key = bitjs.wif2pubkey(wif);
+			var key = BitJS.wif2pubkey(wif);
 			var shType = sigHashType || 1;
 			var signature = this.transactionSig(index, wif, shType);
 			var buf = [];
-			var sigBytes = Crypto.util.hexToBytes(signature);
+			var sigBytes = BitJS.hexToBytes(signature);
 			buf.push(sigBytes.length);
 			buf = buf.concat(sigBytes);
-	        var pubKeyBytes = Crypto.util.hexToBytes(key['pubkey']);
+	        var pubKeyBytes = BitJS.hexToBytes(key['pubkey']);
 			buf.push(pubKeyBytes.length);
 			buf = buf.concat(pubKeyBytes);
 			this.inputs[index].script = buf;
@@ -377,30 +430,30 @@
 		/* serialize a transaction */
 		btrx.serialize = function() {
 			var buffer = [];
-			buffer = buffer.concat(bitjs.numToBytes(parseInt(this.version),4));
+			buffer = buffer.concat(BitJS.numToBytes(parseInt(this.version),4));
 
-			buffer = buffer.concat(bitjs.numToVarInt(this.inputs.length));
+			buffer = buffer.concat(BitJS.numToVarInt(this.inputs.length));
 			for (var i = 0; i < this.inputs.length; i++) {
 				var txin = this.inputs[i];
-				buffer = buffer.concat(Crypto.util.hexToBytes(txin.outpoint.hash).reverse());
-				buffer = buffer.concat(bitjs.numToBytes(parseInt(txin.outpoint.index),4));
+				buffer = buffer.concat(BitJS.hexToBytes(txin.outpoint.hash).reverse());
+				buffer = buffer.concat(BitJS.numToBytes(parseInt(txin.outpoint.index),4));
 				var scriptBytes = txin.script;
-				buffer = buffer.concat(bitjs.numToVarInt(scriptBytes.length));
+				buffer = buffer.concat(BitJS.numToVarInt(scriptBytes.length));
 				buffer = buffer.concat(scriptBytes);
-				buffer = buffer.concat(bitjs.numToBytes(parseInt(txin.sequence),4));
+				buffer = buffer.concat(BitJS.numToBytes(parseInt(txin.sequence),4));
 			}
-			buffer = buffer.concat(bitjs.numToVarInt(this.outputs.length));
+			buffer = buffer.concat(BitJS.numToVarInt(this.outputs.length));
 
 			for (var i = 0; i < this.outputs.length; i++) {
 				var txout = this.outputs[i];
-				buffer = buffer.concat(bitjs.numToBytes(txout.value,8));
+				buffer = buffer.concat(BitJS.numToBytes(txout.value,8));
 				var scriptBytes = txout.script;
-				buffer = buffer.concat(bitjs.numToVarInt(scriptBytes.length));
+				buffer = buffer.concat(BitJS.numToVarInt(scriptBytes.length));
 				buffer = buffer.concat(scriptBytes);
 			}
 
-			buffer = buffer.concat(bitjs.numToBytes(parseInt(this.locktime),4));
-			return Crypto.util.bytesToHex(buffer);		
+			buffer = buffer.concat(BitJS.numToBytes(parseInt(this.locktime),4));
+			return BitJS.bytesToHex(buffer);		
 		}
 				
 		
@@ -408,120 +461,54 @@
 		
 	}
 	
-	bitjs.numToBytes = function(num,bytes) {
+	static numToBytes(num,bytes) {
 		if (typeof bytes === "undefined") bytes = 8;
 		if (bytes == 0) { 
 			return [];
 		} else if (num == -1){
-			return Crypto.util.hexToBytes("ffffffffffffffff");
+			return BitJS.hexToBytes("ffffffffffffffff");
 		} else {
-			return [num % 256].concat(bitjs.numToBytes(Math.floor(num / 256),bytes-1));
+			return [num % 256].concat(BitJS.numToBytes(Math.floor(num / 256),bytes-1));
 		}
 	}
 
-	bitjs.numToByteArray = function(num) {
+	static numToByteArray(num) {
 		if (num <= 256) { 
 			return [num];
 		} else {
-			return [num % 256].concat(bitjs.numToByteArray(Math.floor(num / 256)));
+			return [num % 256].concat(this.numToByteArray(Math.floor(num / 256)));
 		}
 	}
 
-	bitjs.numToVarInt = function(num) {
+	static numToVarInt(num) {
 		if (num < 253) {
 			return [num];
 		} else if (num < 65536) {
-			return [253].concat(bitjs.numToBytes(num,2));
+			return [253].concat(BitJS.numToBytes(num,2));
 		} else if (num < 4294967296) {
-			return [254].concat(bitjs.numToBytes(num,4));
+			return [254].concat(BitJS.numToBytes(num,4));
 		} else {
-			return [255].concat(bitjs.numToBytes(num,8));
+			return [255].concat(BitJS.numToBytes(num,8));
 		}
 	}
 
-	bitjs.bytesToNum = function(bytes) {
+	static bytesToNum(bytes) {
 		if (bytes.length == 0) return 0;
-		else return bytes[0] + 256 * bitjs.bytesToNum(bytes.slice(1));
+		else return bytes[0] + 256 * this.bytesToNum(bytes.slice(1));
 	}
 
 	/* clone an object */
-	bitjs.clone = function(obj) {
+	static clone(obj) {
 		if(obj == null || typeof(obj) != 'object') return obj;
 		var temp = new obj.constructor();
 
 		for(var key in obj) {
 			if(obj.hasOwnProperty(key)) {
-				temp[key] = bitjs.clone(obj[key]);
+				temp[key] = BitJS.clone(obj[key]);
 			}
 		}
 		return temp;
 	}
 	
-	var B58 = bitjs.Base58 = {
-		alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
-		validRegex: /^[1-9A-HJ-NP-Za-km-z]+$/,
-		base: BigInteger.valueOf(58),
-
-		/**
-		* Convert a byte array to a base58-encoded string.
-		*
-		* Written by Mike Hearn for BitcoinJ.
-		*   Copyright (c) 2011 Google Inc.
-		*
-		* Ported to JavaScript by Stefan Thomas.
-		*/
-		encode: function (input) {
-			var bi = BigInteger.fromByteArrayUnsigned(input);
-			var chars = [];
-
-			while (bi.compareTo(B58.base) >= 0) {
-				var mod = bi.mod(B58.base);
-				chars.unshift(B58.alphabet[mod.intValue()]);
-				bi = bi.subtract(mod).divide(B58.base);
-			}
-			chars.unshift(B58.alphabet[bi.intValue()]);
-
-			// Convert leading zeros too.
-			for (var i = 0; i < input.length; i++) {
-				if (input[i] == 0x00) {
-					chars.unshift(B58.alphabet[0]);
-				} else break;
-			}
-
-			return chars.join('');
-		},
-
-		/**
-		* Convert a base58-encoded string to a byte array.
-		*
-		* Written by Mike Hearn for BitcoinJ.
-		*   Copyright (c) 2011 Google Inc.
-		*
-		* Ported to JavaScript by Stefan Thomas.
-		*/
-		decode: function (input) {
-			var bi = BigInteger.valueOf(0);
-			var leadingZerosNum = 0;
-			for (var i = input.length - 1; i >= 0; i--) {
-				var alphaIndex = B58.alphabet.indexOf(input[i]);
-				if (alphaIndex < 0) {
-					throw "Invalid character";
-				}
-				bi = bi.add(BigInteger.valueOf(alphaIndex)
-								.multiply(B58.base.pow(input.length - 1 - i)));
-
-				// This counts leading zero bytes
-				if (input[i] == "1") leadingZerosNum++;
-				else leadingZerosNum = 0;
-			}
-			var bytes = bi.toByteArrayUnsigned();
-
-			// Add leading zeros
-			while (leadingZerosNum-- > 0) bytes.unshift(0);
-
-			return bytes;
-		}
-	}
-	return bitjs;
-
-})();
+	
+}
