@@ -1296,5 +1296,5 @@ BigInteger.prototype.toByteArraySigned = function() {
   return val;
 };
 
-window.BigInteger = BigInteger;
-window.Barrett = Barrett;
+global.BigInteger = BigInteger;
+global.Barrett = Barrett;

@@ -9,7 +9,7 @@
 (function () {
 
 	// Constructor function of Global EllipticCurve object
-	var ec = window.EllipticCurve = function () { };
+	var ec = global.EllipticCurve = function () { };
 
 
 	// ----------------
