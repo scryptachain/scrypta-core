@@ -444,6 +444,4 @@ export default class ScryptaCore {
     }
 }
 
-if(window){
-    window.ScryptaCore = ScryptaCore
-}
+window.ScryptaCore = ScryptaCore
