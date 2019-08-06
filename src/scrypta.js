@@ -18,7 +18,7 @@ export default class ScryptaCore {
     }
 
     static returnNodes(){
-        return ['idanode01.scryptachain.org'];
+        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org'];
     }
     
     static async checkNode(node){
