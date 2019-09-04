@@ -210,16 +210,11 @@ export default class ScryptaCore {
 
     static async listUnspent(address){
         const app = this
-        const node = await app.connectNode();
-        if(node !== undefined){
-            var unspent = await axios.post(
-                'https://' + node + '/listunspent',
-                { address: address }
-            )
-            return unspent.data.data
-        } else {
-            return Promise.resolve(false)
-        }
+        let explorer = 'https://microexplorer.scryptachain.org'
+        var unspent = await axios.get(
+            explorer + '/unspent/' + address
+        )
+        return unspent.data.unspent
     }
 
     static async sendRawTransaction(rawtransaction){
