@@ -32,14 +32,19 @@
             var password = 'test'
             var metadata = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis quis risus auctor, eleifend neque sit amet, ultricies nulla. Suspendisse condimentum nisi ut nunc mattis, vel congue velit congue. Aliquam sit amet pharetra tellus. Etiam tellus lacus, pretium vel commodo a, tempor nec ante. Aenean turpis nisi, pulvinar eget vehicula at, dapibus at dui. Cras vitae dictum massa. Sed in orci lorem. Nullam ut mattis lacus. Mauris ut mattis tellus. Donec et posuere lorem, id elementum ligula. Aliquam eu mollis neque, eget venenatis erat. Aenean vestibulum nunc diam, et luctus massa porttitor ac. Morbi tempor eleifend bibendum. Curabitur sed diam leo.'
             var protocol = ''
-
-            window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
-                window.ScryptaCore.connectNode().then(node => {
-                    window.ScryptaCore.write(password, metadata, '', '', protocol, '').then(response => {
-                        document.getElementById('writeresponse').innerHTML = JSON.stringify(response)
+            var isWriting = false
+            if(isWriting === false){
+                document.getElementById('writeresponse').innerHTML = 'Writing test data to the blockchain...'
+                isWriting = true
+                window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
+                    window.ScryptaCore.connectNode().then(node => {
+                        window.ScryptaCore.write(password, metadata, '', '', protocol, '').then(response => {
+                            document.getElementById('writeresponse').innerHTML = JSON.stringify(response)
+                            isWriting = false
+                        })
                     })
                 })
-            })
+            }
         }
     </script>
   </body>

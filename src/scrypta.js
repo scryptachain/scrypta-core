@@ -15,10 +15,59 @@ export default class ScryptaCore {
     constructor (){
         this.RAWsAPIKey = '';
         this.PubAddress = '';
+        ScryptaCore.clearCache()
     }
 
     static returnNodes(){
         return ['https://idanodejs01.scryptachain.org'];
+    }
+    static async clearCache(){
+        return new Promise(async response => {
+            await localStorage.removeItem('ScryptaTXIDCache')
+            await localStorage.removeItem('ScryptaUTXOCache')
+            response(true)
+        })
+    }
+    static async returnTXIDCache(){
+        return new Promise(async response => {
+            var cache = await localStorage.getItem('ScryptaTXIDCache')
+            if(cache === null){
+                cache = []
+            }else{
+                cache = JSON.parse(cache)
+            }
+            response(cache)
+        })
+    }
+
+    static async pushTXIDtoCache(txid){
+        return new Promise(async response => {
+            let cache = await this.returnTXIDCache()
+            cache.push(txid)
+            await localStorage.setItem('ScryptaTXIDCache',JSON.stringify(cache))
+            response(true)
+        })
+    }
+
+    static async returnUTXOCache(){
+        return new Promise(async response => {
+            var cache = await localStorage.getItem('ScryptaUTXOCache')
+            if(cache === null){
+                cache = []
+            }else{
+                cache = JSON.parse(cache)
+            }
+            response(cache)
+        })
+    }
+
+    static async pushUTXOtoCache(utxo){
+        return new Promise(async response => {
+            let cache = await this.returnUTXOCache()
+            cache.push(utxo)
+            await localStorage.setItem('ScryptaUTXOCache',JSON.stringify(cache))
+            response(true)
+        })
     }
     
     static async checkNode(node){
@@ -271,16 +320,16 @@ export default class ScryptaCore {
                 var trx = Trx.transaction();
                 var from = ScryptaCore_split[0]
                 var unspent = []
-                if(window.ScryptaUTXOCache.length > 0){
-                    for(var x = 0; x < window.ScryptaUTXOCache.length; x++){
-                        unspent.push(window.ScryptaUTXOCache[x])
+                var cache = await this.returnUTXOCache()
+                if(cache.length > 0){
+                    for(var x = 0; x < cache.length; x++){
+                        unspent.push(cache[x])
                     }
                 }
                 var listunspent = await this.listUnspent(from)
                 for(var x = 0; x < listunspent.length; x++){
                     unspent.push(listunspent[x])
                 }
-
                 if(unspent.length > 0){
                     var inputamount = 0;
                     for (var i=0; i < unspent.length; i++){
@@ -288,10 +337,11 @@ export default class ScryptaCore {
                             var txid = unspent[i]['txid'];
                             var index = unspent[i]['vout'];
                             var script = unspent[i]['scriptPubKey'];
-                            if(window.ScryptaTXIDCache.indexOf(txid) === -1){
+                            var cache = await this.returnTXIDCache()
+                            if(cache.indexOf(txid) === -1){
                                 trx.addinput(txid,index,script);
                                 inputamount += unspent[i]['amount']
-                                window.ScryptaTXIDCache.push(txid)
+                                await this.pushTXIDtoCache(txid)
                             }
                         }
                     }
@@ -306,7 +356,7 @@ export default class ScryptaCore {
                         }
 
                         if(metadata !== '' && metadata.length <= 80){
-                            console.log('ADDING METADATA TO TX', metadata)
+                            //console.log('ADDING METADATA TO TX', metadata)
                             trx.addmetadata(metadata);
                         }else{
                             console.log('METADATA TOO LONG')
@@ -319,7 +369,7 @@ export default class ScryptaCore {
                         } else {
                             var txid = await this.sendRawTransaction(signed)
                             if(txid !== null){
-                                console.log("TX SENT: " + txid)
+                                //console.log("TX SENT: " + txid)
                                 return Promise.resolve(txid)
                             }
                         }
@@ -328,7 +378,7 @@ export default class ScryptaCore {
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
-                    console.log('NOT ENOUGH FUNDS')
+                    console.log('NO UNSPENTS')
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
             } catch (error) {
@@ -347,7 +397,7 @@ export default class ScryptaCore {
             }
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
-                console.log('WRITING TO BLOCKCHAIN')
+                //console.log('WRITING TO BLOCKCHAIN')
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
                 var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
                 dec += decipher.final('utf8');
@@ -380,7 +430,7 @@ export default class ScryptaCore {
                     var txid = ''
                     var i = 0
                     var totalfees = 0
-                    while(txid.length !== 64){
+                    while(txid !== null && txid !== undefined && txid.length !== 64){
                         var fees = 0.001 + (i / 1000)
                         var rawtransaction = await this.send(password,false,wallet,0,dataToWrite,fees)
                         if(rawtransaction !== false){
@@ -389,15 +439,19 @@ export default class ScryptaCore {
                                 totalfees += fees
                                 //Storing UTXO to cache
                                 var decoded = await this.decodeRawTransaction(rawtransaction)
-                                let unspent = {
-                                    txid: decoded.txid,
-                                    vout: 0, 
-                                    address: decoded.vout[0].scriptPubKey.addresses[0],
-                                    scriptPubKey: decoded.vout[0].scriptPubKey.hex,
-                                    amount: decoded.vout[0].value
+                                if(decoded.vout[0].scriptPubKey.addresses !== undefined){
+                                    let unspent = {
+                                        txid: decoded.txid,
+                                        vout: 0, 
+                                        address: decoded.vout[0].scriptPubKey.addresses[0],
+                                        scriptPubKey: decoded.vout[0].scriptPubKey.hex,
+                                        amount: decoded.vout[0].value
+                                    }
+                                    await this.pushUTXOtoCache(unspent)
                                 }
-                                window.ScryptaUTXOCache.push(unspent)
                             }
+                        }else{
+                            txid = null
                         }
                         i++;
                     }
@@ -458,23 +512,29 @@ export default class ScryptaCore {
                         var txid = ''
                         var i = 0
                         var rawtransaction
-                        while(txid.length !== 64){
+                        while(txid !== null && txid !== undefined && txid.length !== 64){
                             var fees = 0.001 + (i / 1000)
+                            //console.log('STORING CHUNK #' + cix, chunks[cix])
                             rawtransaction = await this.send(password,false,wallet,0,chunks[cix],fees)
                             txid = await this.sendRawTransaction(rawtransaction)
+                            //console.log(txid)
                             if(txid !== null && txid !== false && txid.length === 64){
                                 totalfees += fees
                                 txs.push(txid)
                                 //Storing UTXO to cache
                                 var decoded = await this.decodeRawTransaction(rawtransaction)
-                                let unspent = {
-                                    txid: decoded.txid,
-                                    vout: 0, 
-                                    address: decoded.vout[0].scriptPubKey.addresses[0],
-                                    scriptPubKey: decoded.vout[0].scriptPubKey.hex,
-                                    amount: decoded.vout[0].value
+                                if(decoded.vout[0].scriptPubKey.addresses !== undefined){
+                                    let unspent = {
+                                        txid: decoded.txid,
+                                        vout: 0, 
+                                        address: decoded.vout[0].scriptPubKey.addresses[0],
+                                        scriptPubKey: decoded.vout[0].scriptPubKey.hex,
+                                        amount: decoded.vout[0].value
+                                    }
+                                    await this.pushUTXOtoCache(unspent)
                                 }
-                                window.ScryptaUTXOCache.push(unspent)
+                            }else{
+                                txid = null
                             }
                             i++;
                         }
@@ -502,7 +562,5 @@ export default class ScryptaCore {
         }
     }
 }
-
+new ScryptaCore
 window.ScryptaCore = ScryptaCore
-window.ScryptaTXIDCache = []
-window.ScryptaUTXOCache = []
