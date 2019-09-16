@@ -106,9 +106,6 @@ export default class ScryptaCore {
         var lyrapub = ck.publicAddress;
         var lyraprv = ck.privateWif;
         var lyrakey = ck.publicKey.toString('hex');
-
-        //console.log("CREATED PUB ADDRESS: " + lyrapub);
-        //console.log("CREATED PUB KEY: " + lyrakey);
         
         // STORE JUST LYRA WALLET 
         var wallet = {
@@ -123,7 +120,6 @@ export default class ScryptaCore {
 
         var walletstore = lyrapub + ':' + wallethex;
         
-        // SAVE ENCRYPTED VERION IN COOKIE
         if(saveKey == true){
             if(window.location.hostname == 'localhost'){
                 var cookie_secure = false;
