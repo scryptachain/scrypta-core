@@ -18,7 +18,7 @@ export default class ScryptaCore {
     }
 
     static returnNodes(){
-        return ['idanode01.scryptachain.org','idanode02.scryptachain.org','idanode03.scryptachain.org'];
+        return ['idanodejs01.scryptachain.org','idanodejs02.scryptachain.org','idanodejs03.scryptachain.org'];
     }
     
     static async checkNode(node){
@@ -161,7 +161,7 @@ export default class ScryptaCore {
         return Promise.resolve(true);
     }
 
-    static keyExsist(){
+    static keyExist(){
         var ScryptaCore_cookie = cookies.get('scrypta_key');
         if(ScryptaCore_cookie !== null && ScryptaCore_cookie !== ''){
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
@@ -210,10 +210,8 @@ export default class ScryptaCore {
 
     static async listUnspent(address){
         const app = this
-        let explorer = 'https://microexplorer.scryptachain.org'
-        var unspent = await axios.get(
-            explorer + '/unspent/' + address
-        )
+        const node = await app.connectNode();
+        var unspent = await axios.get(node + '/unspent/' + address)
         return unspent.data.unspent
     }
 
@@ -233,7 +231,23 @@ export default class ScryptaCore {
         }
     }
 
-    static async send(password = '', send = false, to, amount, metadata = '', fees = 0.001, key = ''){
+    static async decodeRawTransaction(rawtransaction){
+        const app = this
+        const node = await app.connectNode();
+        if(node !== undefined){
+            var transaction = await axios.post(
+                'https://' + node + '/decoderawtransaction',
+                { rawtransaction: rawtransaction }
+            ).catch(function(err){
+                console.log(err)
+            })
+            return transaction.data.transaction
+        } else {
+            return Promise.resolve(false)
+        }
+    }
+
+    static async send(password = '', send = false, to, amount, metadata = '', fees = 0.001, key = '', unspent = ''){
         if(key === ''){
             var ScryptaCore_cookie = cookies.get('scrypta_key');
         }else{
@@ -249,7 +263,9 @@ export default class ScryptaCore {
 
                 var trx = Trx.transaction();
                 var from = ScryptaCore_split[0]
-                var unspent = await this.listUnspent(from)
+                if(unspent === ''){
+                    unspent = await this.listUnspent(from)
+                }
                 if(unspent.length > 0){
                     var inputamount = 0;
                     for (var i=0; i < unspent.length; i++){
@@ -312,7 +328,6 @@ export default class ScryptaCore {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
                 var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
                 dec += decipher.final('utf8');
-                var $ScryptaCore_cookie = JSON.parse(dec);
                 
                 var wallet = ScryptaCore_split[0]
 
@@ -405,12 +420,32 @@ export default class ScryptaCore {
                     for(var cix=0; cix<chunks.length; cix++){
                         var txid = ''
                         var i = 0
+                        var rawtransaction
+
                         while(txid.length !== 64){
                             var fees = 0.001 + (i / 1000)
-                            txid = await this.send(password,true,wallet,0,chunks[cix],fees)
-                            if(txid !== false && txid.length === 64){
-                                totalfees += fees
-                                txs.push(txid)
+                            if(cix === 0){
+                                rawtransaction = await this.send(password,false,wallet,0,chunks[cix],fees)
+                                txid = this.sendRawTransaction(rawtransaction)
+                                if(txid !== false && txid.length === 64){
+                                    totalfees += fees
+                                    txs.push(txid)
+                                }
+                            }else{
+                                decoded = await this.decodeRawTransaction(rawtransaction)
+                                let unspent = {
+                                    txid: decoded.txid,
+                                    vout: 0, 
+                                    address: decoded.vout[0].scriptPubKey.addresses[0],
+                                    scriptPubKey: decoded.vout[0].scriptPubKey.hex,
+                                    amount: decoded.vout[0].value
+                                }
+                                rawtransaction = await this.send(password,false,wallet,0,chunks[cix],fees, '', [unspent])
+                                txid = this.sendRawTransaction(rawtransaction)
+                                if(txid !== false && txid.length === 64){
+                                    totalfees += fees
+                                    txs.push(txid)
+                                }
                             }
                             i++;
                         }
