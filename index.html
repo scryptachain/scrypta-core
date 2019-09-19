@@ -12,6 +12,11 @@
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
         <button onClick="testWrite()">TEST WRITE</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="writeresponse"></pre>
+        <button onClick="testCrypt()">TEST CRYPT / DECRYPT</button>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptresponse"></pre>
+        <button onClick="testCrypt()">TEST CRYPT FILE</button><br>
+        <input type="file" onChange="testCryptFile(event)"><br>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptfileresponse"></pre>
     </div>
     <style>
         *{
@@ -46,6 +51,52 @@
                 })
             }
         }
+
+        function testCrypt(){
+            var password = 'test'
+            var metadata = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis quis risus auctor, eleifend neque sit amet, ultricies nulla. Suspendisse condimentum nisi ut nunc mattis, vel congue velit congue. Aliquam sit amet pharetra tellus. Etiam tellus lacus, pretium vel commodo a, tempor nec ante. Aenean turpis nisi, pulvinar eget vehicula at, dapibus at dui. Cras vitae dictum massa. Sed in orci lorem. Nullam ut mattis lacus. Mauris ut mattis tellus. Donec et posuere lorem, id elementum ligula. Aliquam eu mollis neque, eget venenatis erat. Aenean vestibulum nunc diam, et luctus massa porttitor ac. Morbi tempor eleifend bibendum. Curabitur sed diam leo.'
+            var isWriting = false
+            if(isWriting === false){
+                document.getElementById('cryptresponse').innerHTML = 'Crypting data...'
+                isWriting = true
+                window.ScryptaCore.cryptData(metadata,password).then(crypted => {
+                    var cryptresponse = crypted
+                    window.ScryptaCore.decryptData(crypted, password).then(decrypted => {
+                        cryptresponse +="\n\n-------\n\n" + decrypted
+                        document.getElementById('cryptresponse').innerHTML = cryptresponse
+                    })
+                })
+            }
+        }
+
+        function testCryptFile(ev){
+            const file = ev.target.files[0];
+            let password = 'test'
+            document.getElementById('cryptfileresponse').innerHTML = 'Crypting file...'
+            window.ScryptaCore.cryptFile(file,password).then(crypted => {
+                document.getElementById('cryptfileresponse').innerHTML = 'Derypting file...'
+                window.ScryptaCore.decryptFile(crypted,password).then(decrypted => {
+                    document.getElementById('cryptfileresponse').innerHTML = 'Downloading file...'
+                    var saveByteArray = (function () {
+                    var a = document.createElement("a");
+                    document.body.appendChild(a);
+                    a.style = "display: none";
+                    return function (data, name) {
+                        var blob = new Blob(data, {type: "octet/stream"}),
+                            url = window.URL.createObjectURL(blob);
+                        a.href = url;
+                        a.download = name;
+                        a.click();
+                        document.getElementById('cryptfileresponse').innerHTML = ''
+                        window.URL.revokeObjectURL(url);
+                    };
+                }());
+
+                saveByteArray([decrypted], file.name);
+                })
+            })
+        }
+
     </script>
   </body>
 </html>

@@ -95,6 +95,47 @@ export default class ScryptaCore {
         })
     }
 
+    static async cryptData(data, password){
+        return new Promise(response => {
+            const cipher = crypto.createCipher('aes-256-cbc', password)
+            let hex = cipher.update(JSON.stringify(data), 'utf8', 'hex')
+            hex += cipher.final('hex')
+            response(hex)
+        })
+    }
+
+    static async decryptData(data, password){
+        return new Promise(response => {
+            var decipher = crypto.createDecipher('aes-256-cbc', password)
+            var dec = decipher.update(data,'hex','utf8')
+            dec += decipher.final('utf8')
+            response(JSON.parse(dec))
+        })
+    }
+
+    static async cryptFile(file, password){
+        return new Promise(response => {
+
+            const reader = new FileReader();
+            reader.onload = function() {
+                var buf = Buffer(reader.result)
+                var cipher = crypto.createCipher('aes-256-cbc', password)
+                var crypted = Buffer.concat([cipher.update(buf),cipher.final()])
+                response(crypted)
+            };
+
+            reader.readAsArrayBuffer(file);
+        })
+    }
+
+    static async decryptFile(file, password){
+        return new Promise(response => {
+            var decipher = crypto.createDecipher('aes-256-cbc', password)
+            var decrypted = Buffer.concat([decipher.update(file) , decipher.final()])
+            response(decrypted)
+        })
+    }
+
     static async createAddress(password, saveKey = true){
         // LYRA WALLET
         var ck = new CoinKey.createRandom(lyraInfo)
