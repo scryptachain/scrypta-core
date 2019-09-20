@@ -121,7 +121,7 @@ export default class ScryptaCore {
                 var buf = Buffer(reader.result)
                 var cipher = crypto.createCipher('aes-256-cbc', password)
                 var crypted = Buffer.concat([cipher.update(buf),cipher.final()])
-                response(crypted)
+                response(crypted.toString('hex'))
             };
 
             reader.readAsArrayBuffer(file);
@@ -130,8 +130,9 @@ export default class ScryptaCore {
 
     static async decryptFile(file, password){
         return new Promise(response => {
+            let buf = Buffer(file)
             var decipher = crypto.createDecipher('aes-256-cbc', password)
-            var decrypted = Buffer.concat([decipher.update(file) , decipher.final()])
+            var decrypted = Buffer.concat([decipher.update(buf) , decipher.final()])
             response(decrypted)
         })
     }

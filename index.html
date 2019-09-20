@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8"/>
     <title><%= htmlWebpackPlugin.options.title %></title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
   </head>
   <body style="text-align:center;">
     <div style="margin:20px auto; width:768px; display:inline-block;">
@@ -74,26 +76,47 @@
             let password = 'test'
             document.getElementById('cryptfileresponse').innerHTML = 'Crypting file...'
             window.ScryptaCore.cryptFile(file,password).then(crypted => {
-                document.getElementById('cryptfileresponse').innerHTML = 'Derypting file...'
-                window.ScryptaCore.decryptFile(crypted,password).then(decrypted => {
-                    document.getElementById('cryptfileresponse').innerHTML = 'Downloading file...'
-                    var saveByteArray = (function () {
-                    var a = document.createElement("a");
-                    document.body.appendChild(a);
-                    a.style = "display: none";
-                    return function (data, name) {
-                        var blob = new Blob(data, {type: "octet/stream"}),
-                            url = window.URL.createObjectURL(blob);
-                        a.href = url;
-                        a.download = name;
-                        a.click();
-                        document.getElementById('cryptfileresponse').innerHTML = ''
-                        window.URL.revokeObjectURL(url);
-                    };
-                }());
+                document.getElementById('cryptresponse').innerHTML = 'Crypting data...'
+                isWriting = true
+                const form_data = new FormData();
+                form_data.append("buffer", crypted);
+                console.log(crypted)
+                document.getElementById('cryptfileresponse').innerHTML = 'Posting file to IPFS...'
+                axios.post(
+                    'http://localhost:3001/ipfs/add', 
+                    form_data, 
+                    {
+                        "Content-Type": "multipart/form-data"
+                    }).then(function (response) {
+                        console.log(response.data)
+                        document.getElementById('cryptfileresponse').innerHTML = 'Retrieving file from IPFS...'
+                        axios.get('http://localhost:3001/ipfs/buffer/' + response.data.data[0].hash).then(ipfs => {
+                            console.log(ipfs)
+                            document.getElementById('cryptfileresponse').innerHTML = 'Decrypting file...'
+                            let data = ipfs.data.data[0].content.data
+                            console.log('DATA',data)
+                            window.ScryptaCore.decryptFile(data, password).then(decrypted => {
+                                console.log('DECRYPTED', decrypted)
+                                document.getElementById('cryptfileresponse').innerHTML = 'Downloading file...'
+                                var saveByteArray = (function () {
+                                    var a = document.createElement("a");
+                                    document.body.appendChild(a);
+                                    a.style = "display: none";
+                                    return function (data, name) {
+                                        var blob = new Blob(data, {type: "octet/stream"}),
+                                            url = window.URL.createObjectURL(blob);
+                                        a.href = url;
+                                        a.download = name;
+                                        a.click();
+                                        document.getElementById('cryptfileresponse').innerHTML = ''
+                                        window.URL.revokeObjectURL(url);
+                                    };
+                                }());
 
-                saveByteArray([decrypted], file.name);
-                })
+                                saveByteArray([decrypted], file.name);
+                            })
+                        })
+                    })
             })
         }
 
