@@ -134,10 +134,14 @@ export default class ScryptaCore {
 
     static async decryptFile(file, password){
         return new Promise(response => {
-            let buf = Buffer(file)
-            var decipher = crypto.createDecipher('aes-256-cbc', password)
-            var decrypted = Buffer.concat([decipher.update(buf) , decipher.final()])
-            response(decrypted)
+            try{
+                let buf = Buffer(file)
+                var decipher = crypto.createDecipher('aes-256-cbc', password)
+                var decrypted = Buffer.concat([decipher.update(buf) , decipher.final()])
+                response(decrypted)
+            }catch(e){
+                response(false)
+            }
         })
     }
 
