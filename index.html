@@ -77,7 +77,6 @@
             let isWriting = false
             document.getElementById('cryptfileresponse').innerHTML = 'Crypting file...'
             if(isWriting === false){
-                
                 window.ScryptaCore.cryptFile(file,password).then(crypted => {
                     isWriting = true
                     const form_data = new FormData();

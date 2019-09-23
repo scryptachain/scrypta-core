@@ -106,10 +106,14 @@ export default class ScryptaCore {
 
     static async decryptData(data, password){
         return new Promise(response => {
-            var decipher = crypto.createDecipher('aes-256-cbc', password)
-            var dec = decipher.update(data,'hex','utf8')
-            dec += decipher.final('utf8')
-            response(JSON.parse(dec))
+            try{
+                var decipher = crypto.createDecipher('aes-256-cbc', password)
+                var dec = decipher.update(data,'hex','utf8')
+                dec += decipher.final('utf8')
+                response(JSON.parse(dec))
+            }catch(e){
+                response(false)
+            }
         })
     }
 
@@ -470,7 +474,7 @@ export default class ScryptaCore {
                     var totalfees = 0
                     while(txid !== null && txid !== undefined && txid.length !== 64){
                         var fees = 0.001 + (i / 1000)
-                        var rawtransaction = await this.send(password,false,wallet,0,dataToWrite,fees)
+                        var rawtransaction = await this.send(password,false,wallet,0,dataToWrite,fees,ScryptaCore_cookie)
                         if(rawtransaction !== false){
                             txid = await this.sendRawTransaction(rawtransaction)
                             if(txid !== null && txid !== false && txid.length === 64){
@@ -553,7 +557,7 @@ export default class ScryptaCore {
                         while(txid !== null && txid !== undefined && txid.length !== 64){
                             var fees = 0.001 + (i / 1000)
                             //console.log('STORING CHUNK #' + cix, chunks[cix])
-                            rawtransaction = await this.send(password,false,wallet,0,chunks[cix],fees)
+                            rawtransaction = await this.send(password,false,wallet,0,chunks[cix],fees,ScryptaCore_cookie)
                             txid = await this.sendRawTransaction(rawtransaction)
                             //console.log(txid)
                             if(txid !== null && txid !== false && txid.length === 64){
