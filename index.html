@@ -12,6 +12,8 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet">
         <button onClick="getNewAddress()">CREATE NEW ADDRESS</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
+        <button onClick="testSend()">TEST SEND</button>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="sendresponse"></pre>
         <button onClick="testWrite()">TEST WRITE</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="writeresponse"></pre>
         <button onClick="testCrypt()">TEST CRYPT / DECRYPT</button>
@@ -30,6 +32,27 @@
             window.ScryptaCore.createAddress('test').then(response => {
                 document.getElementById('newaddressresponse').innerHTML = JSON.stringify(response)
             })
+        }
+
+        function testSend(){
+            var address = 'LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2'
+            var pubkey = '03a2b152761ab5b8aedbb07dea15dedacf12a68abd8b73a4f99a6f1f322792ee27'
+            var privkey = 'Sq9GWa9vyM1HghsnVan5UJhtx2GumTaLBTHgDhCW4abjzZLmsYmr'
+            var password = 'test'
+            var protocol = ''
+            var isWriting = false
+            if(isWriting === false){
+                document.getElementById('sendresponse').innerHTML = 'Sending 1 LYRA to ' + address + '...'
+                isWriting = true
+                window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
+                    window.ScryptaCore.connectNode().then(node => {
+                        window.ScryptaCore.send(password, address, 1, '', wallet.walletstore).then(response => {
+                            document.getElementById('sendresponse').innerHTML = JSON.stringify(response)
+                            isWriting = false
+                        })
+                    })
+                })
+            }
         }
 
         function testWrite(){
