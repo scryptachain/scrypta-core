@@ -368,7 +368,7 @@ export default class ScryptaCore {
                 var unspent = []
                 var inputs = []
                 var cache = await this.returnUTXOCache()
-                console.log('CACHE', cache)
+                //console.log('CACHE', cache)
                 if(cache.length > 0){
                     for(var x = 0; x < cache.length; x++){
                         unspent.push(cache[x])
