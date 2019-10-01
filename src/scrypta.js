@@ -349,12 +349,8 @@ export default class ScryptaCore {
         }
     }
 
-    static async build(password = '', send = false, to, amount, metadata = '', fees = 0.001, key = ''){
-        if(key === ''){
-            var ScryptaCore_cookie = cookies.get('scrypta_key');
-        }else{
-            var ScryptaCore_cookie = key;
-        }
+    static async build(password = '', send = false, to, amount, metadata = '', fees = 0.001, key){
+        var ScryptaCore_cookie = key;
         if(password !== ''){
             var ScryptaCore_split = ScryptaCore_cookie.split(':');
             try {
