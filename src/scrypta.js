@@ -253,7 +253,7 @@ export default class ScryptaCore {
         return pubkey;
     }
 
-    static async saveKey(key){R
+    static async saveKey(key){
         if(window.location.hostname == 'localhost'){
             var cookie_secure = false;
         }else{
