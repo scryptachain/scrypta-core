@@ -19,7 +19,7 @@ export default class ScryptaCore {
     }
 
     static returnNodes(){
-        return ['https://idanodejs01.scryptachain.org'];
+        return ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org'];
     }
     static async clearCache(){
         return new Promise(async response => {
