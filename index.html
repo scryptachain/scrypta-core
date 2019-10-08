@@ -8,19 +8,27 @@
   </head>
   <body style="text-align:center;">
     <div style="margin:20px auto; width:768px; display:inline-block;">
-        <h1>ScryptaCoreJS</h1>
+        <h1>ScryptaCoreJ Testing Suite</h1>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet">
         <button onClick="getNewAddress()">CREATE NEW ADDRESS</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
+        <hr>
         <button onClick="testSend()">TEST SEND</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="sendresponse"></pre>
+        <hr>
         <button onClick="testWrite()">TEST WRITE</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="writeresponse"></pre>
+        <hr>
         <button onClick="testCrypt()">TEST CRYPT / DECRYPT</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptresponse"></pre>
-        <button onClick="testCrypt()">TEST CRYPT FILE</button><br>
+        <hr>
+        <button onClick="testCrypt()">TEST CRYPT / DECRYPT FILE</button><br>
         <input type="file" onChange="testCryptFile(event)"><br>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptfileresponse"></pre>
+        <hr>
+        <button onClick="testSign()">TEST SIGN / VERIFY MESSAGE</button>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="signresponse"></pre>
+        <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="verifyresponse">Waiting for message to verify...</pre>
     </div>
     <style>
         *{
@@ -50,6 +58,24 @@
                             document.getElementById('sendresponse').innerHTML = JSON.stringify(response)
                             isWriting = false
                         })
+                    })
+                })
+            }
+        }
+
+        function testSign(){
+            var privkey = 'Sq9GWa9vyM1HghsnVan5UJhtx2GumTaLBTHgDhCW4abjzZLmsYmr'
+            var password = 'test'
+            var message = 'Any cool message to sign and verify!'
+            var isSigning = false
+            if(isSigning === false){
+                document.getElementById('signresponse').innerHTML = 'Signing message...'
+                isSigning = true
+                window.ScryptaCore.signMessage(privkey, message).then(response => {
+                    document.getElementById('signresponse').innerHTML = JSON.stringify(response)
+                    window.ScryptaCore.verifyMessage(response.pubkey, response.signature, message).then(verification => {
+                        document.getElementById('verifyresponse').innerHTML = JSON.stringify(verification)
+                        isSigning = false
                     })
                 })
             }

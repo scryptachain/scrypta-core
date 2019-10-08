@@ -1,7 +1,10 @@
 import _ from 'lodash'
 var CoinKey = require('coinkey')
 var crypto = require('crypto')
+const CryptoJS = require('crypto-js')
+const secp256k1 = require('secp256k1')
 var cookies = require('browser-cookies')
+var cs = require('coinstring')
 var axios = require('axios')
 import Trx from './trx/trx.js'
 
@@ -18,9 +21,37 @@ export default class ScryptaCore {
         ScryptaCore.clearCache()
     }
 
+    //IDANODE FUNCTIONS
     static returnNodes(){
         return ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org'];
     }
+    
+    static async checkNode(node){
+        return new Promise(response => {
+            axios.get(node + '/wallet/getinfo').catch(err => {
+                response(false)
+            }).then(result => {
+                response(result)
+            })
+        })
+    }
+
+    static async connectNode(){
+        return new Promise(async response => {
+            var checknodes = this.returnNodes()
+            var connected = false
+            while(connected === false){
+                var checknode = checknodes[Math.floor(Math.random()*checknodes.length)];
+                const check = await this.checkNode(checknode)
+                if(check !== false){
+                    connected = true
+                    response(checknode)
+                }
+            }
+        })
+    }
+
+    //CACHE FUNCTIONS
     static async clearCache(){
         return new Promise(async response => {
             await localStorage.removeItem('ScryptaTXIDCache')
@@ -28,6 +59,7 @@ export default class ScryptaCore {
             response(true)
         })
     }
+
     static async returnTXIDCache(){
         return new Promise(async response => {
             var cache = await localStorage.getItem('ScryptaTXIDCache')
@@ -69,32 +101,8 @@ export default class ScryptaCore {
             response(true)
         })
     }
-    
-    static async checkNode(node){
-        return new Promise(response => {
-            axios.get(node + '/wallet/getinfo').catch(err => {
-                response(false)
-            }).then(result => {
-                response(result)
-            })
-        })
-    }
 
-    static async connectNode(){
-        return new Promise(async response => {
-            var checknodes = this.returnNodes()
-            var connected = false
-            while(connected === false){
-                var checknode = checknodes[Math.floor(Math.random()*checknodes.length)];
-                const check = await this.checkNode(checknode)
-                if(check !== false){
-                    connected = true
-                    response(checknode)
-                }
-            }
-        })
-    }
-
+    //CRYPT AND ENCRYPT FUNCTIONS
     static async cryptData(data, password){
         return new Promise(response => {
             const cipher = crypto.createCipher('aes-256-cbc', password)
@@ -145,6 +153,7 @@ export default class ScryptaCore {
         })
     }
 
+    //ADDRESS MANAGEMENT
     static async createAddress(password, saveKey = true){
         // LYRA WALLET
         var ck = new CoinKey.createRandom(lyraInfo)
@@ -253,6 +262,17 @@ export default class ScryptaCore {
         return pubkey;
     }
 
+    static async getAddressFromPubKey(pubKey){
+        return new Promise(response => {
+            let pubkeybuffer = new Buffer(pubKey,'hex')
+            var sha = crypto.createHash('sha256').update(pubkeybuffer).digest()
+            let pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
+            var hash160Buf = new Buffer(pubKeyHash, 'hex')
+            response(cs.encode(hash160Buf, lyraInfo.public)) 
+        })
+    }
+
+    //BROWSER KEY MANAGEMENT
     static async saveKey(key){
         if(window.location.hostname == 'localhost'){
             var cookie_secure = false;
@@ -310,6 +330,7 @@ export default class ScryptaCore {
         return true;
     }
 
+    //TRANSACTIONS FUNCTIONS
     static async listUnspent(address){
         const app = this
         const node = await app.connectNode();
@@ -667,6 +688,54 @@ export default class ScryptaCore {
                 return Promise.resolve(false);
             }
         }
+    }
+
+    //SIGNING FUNCTIONS
+    static async signMessage(key, message){
+        return new Promise(response => {
+            //CREATING CK OBJECT
+            var ck = CoinKey.fromWif(key, lyraInfo);
+            //CREATE HASH FROM MESSAGE
+            let hash = CryptoJS.SHA256(message);
+            let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex');
+            //GETTING PUBKEY FROM PRIVATEKEY
+            let privKey = ck.privateKey
+            //SIGN MESSAGE
+            const sigObj = secp256k1.sign(msg, privKey)
+            const pubKey = secp256k1.publicKeyCreate(privKey)
+
+            response({
+                message: message,
+                hash: hash.toString(CryptoJS.enc.Hex),
+                signature: sigObj.signature.toString('hex'),
+                pubkey: pubKey.toString('hex'),
+                address: ck.publicAddress
+            })
+        })
+    }
+
+    static async verifyMessage(pubkey, sighex, message){
+        return new Promise(async response => {
+            //CREATE HASH FROM MESSAGE
+            let hash = CryptoJS.SHA256(message);
+            let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
+            //VERIFY MESSAGE
+            let signature = Buffer.from(sighex,'hex')
+            let pubKey = Buffer.from(pubkey,'hex')
+            let verified = secp256k1.verify(msg, signature, pubKey)
+            let address = await this.getAddressFromPubKey(pubkey)
+            if(verified === true){
+                response({
+                    address: address,
+                    pubkey: pubkey,
+                    signature: sighex,
+                    hash: hash.toString(CryptoJS.enc.Hex),
+                    message: message,
+                })
+            }else{
+                response(false)
+            }
+        })
     }
 }
 new ScryptaCore
