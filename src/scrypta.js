@@ -3,7 +3,6 @@ var CoinKey = require('coinkey')
 var crypto = require('crypto')
 const CryptoJS = require('crypto-js')
 const secp256k1 = require('secp256k1')
-var cookies = require('browser-cookies')
 var cs = require('coinstring')
 var axios = require('axios')
 import Trx from './trx/trx.js'
@@ -173,20 +172,8 @@ export default class ScryptaCore {
             key: lyrakey
         }
 
-        const cipher = crypto.createCipher('aes-256-cbc', password);
-        let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
-        wallethex += cipher.final('hex');
-
-        var walletstore = lyrapub + ':' + wallethex;
+        var walletstore = await this.buildWallet(password, lyrapub, wallet, saveKey)
         
-        if(saveKey == true){
-            if(window.location.hostname == 'localhost'){
-                var cookie_secure = false;
-            }else{
-                var cookie_secure = true;
-            }
-            cookies.set('scrypta_key', walletstore, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
-        }
         var response = {
             pub: lyrapub,
             api_secret: api_secret,
@@ -195,6 +182,23 @@ export default class ScryptaCore {
             walletstore: walletstore
         }
         return response;
+    }
+
+    static async buildWallet(password, pub, wallet, saveKey){
+        return new Promise(response => {
+
+            const cipher = crypto.createCipher('aes-256-cbc', password);
+            let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
+            wallethex += cipher.final('hex');
+
+            var walletstore = pub + ':' + wallethex;
+            
+            if(saveKey == true){
+                localStorage.setItem('SID',walletstore)
+            }
+
+            response(walletstore)
+        })
     }
 
     static async restoreAddress(address, pubkey, privkey, password, saveKey = true){
@@ -225,14 +229,8 @@ export default class ScryptaCore {
 
             var walletstore = lyrapub + ':' + wallethex;
             
-            // SAVE ENCRYPTED VERION IN COOKIE
             if(saveKey == true){
-                if(window.location.hostname == 'localhost'){
-                    var cookie_secure = false;
-                }else{
-                    var cookie_secure = true;
-                }
-                cookies.set('scrypta_key', walletstore, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
+                localStorage.setItem('SID',walletstore)
             }
 
             var response = {
@@ -274,23 +272,18 @@ export default class ScryptaCore {
 
     //BROWSER KEY MANAGEMENT
     static async saveKey(key){
-        if(window.location.hostname == 'localhost'){
-            var cookie_secure = false;
-        }else{
-            var cookie_secure = true;
-        }
-        cookies.set('scrypta_key', key, {secure: cookie_secure, domain: window.location.hostname, expires: 30, samesite: 'Strict'});
+        localStorage.setItem('SID',key)
         return Promise.resolve(true);
     }
 
     static keyExist(){
-        var ScryptaCore_cookie = cookies.get('scrypta_key');
-        if(ScryptaCore_cookie !== null && ScryptaCore_cookie !== ''){
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
-            if(ScryptaCore_split[0].length > 0){
-                this.PubAddress = ScryptaCore_split[0];
-                this.RAWsAPIKey = ScryptaCore_split[1];
-                return ScryptaCore_split[0];
+        var SID = localStorage.getItem('SID')
+        if(SID !== null && SID !== '' && SID !== undefined){
+            var SIDS = SID.split(':');
+            if(SIDS[0].length > 0){
+                this.PubAddress = SIDS[0];
+                this.RAWsAPIKey = SIDS[1];
+                return SIDS[0];
             } else {
                 return false
             }
@@ -299,20 +292,20 @@ export default class ScryptaCore {
         }
     }
 
-    static async readKey(password = '', $key = ''){
-        if($key === ''){
-            var ScryptaCore_cookie = cookies.get('scrypta_key');
+    static async readKey(password = '', key = ''){
+        if(key === ''){
+            var SID = localStorage.getItem('SID')
         }else{
-            var ScryptaCore_cookie = $key;
+            var SID = key;
         }
         if(password !== ''){
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            var SIDS = SID.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
+                var dec = decipher.update(SIDS[1],'hex','utf8');
                 dec += decipher.final('utf8');
-                var $ScryptaCore_cookie = JSON.parse(dec);
-                return Promise.resolve($ScryptaCore_cookie);
+                var decrypted = JSON.parse(dec);
+                return Promise.resolve(decrypted);
             } catch (ex) {
                 console.log('WRONG PASSWORD')
                 return Promise.resolve(false);
@@ -321,12 +314,7 @@ export default class ScryptaCore {
     }
 
     static forgetKey(){
-        if(window.location.hostname == 'localhost'){
-            var cookie_secure = false;
-        }else{
-            var cookie_secure = true;
-        }
-        cookies.set('scrypta_key', "", {secure: cookie_secure, domain: window.location.hostname, expires: 0, samesite: 'Strict'});
+        localStorage.setItem('SID','')
         return true;
     }
 
@@ -371,17 +359,17 @@ export default class ScryptaCore {
     }
 
     static async build(password = '', send = false, to, amount, metadata = '', fees = 0.001, key){
-        var ScryptaCore_cookie = key;
+        var SID = key;
         if(password !== ''){
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            var SIDS = SID.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
+                var dec = decipher.update(SIDS[1],'hex','utf8');
                 dec += decipher.final('utf8');
-                var $ScryptaCore_cookie = JSON.parse(dec);
+                var decrypted = JSON.parse(dec);
 
                 var trx = Trx.transaction();
-                var from = ScryptaCore_split[0]
+                var from = SIDS[0]
                 var unspent = []
                 var inputs = []
                 var cache = await this.returnUTXOCache()
@@ -428,7 +416,7 @@ export default class ScryptaCore {
                                 //console.log('METADATA TOO LONG')
                             }
                         }
-                        var wif = $ScryptaCore_cookie.prv;
+                        var wif = decrypted.prv;
                         var signed = trx.sign(wif,1);
                         if(send === false){
                             return Promise.resolve({
@@ -462,15 +450,15 @@ export default class ScryptaCore {
 
     static async send(password = '', to, amount, metadata = '', key = ''){
         if(key === ''){
-            var ScryptaCore_cookie = cookies.get('scrypta_key');
+            var SID = localStorage.getItem('SID');
         }else{
-            var ScryptaCore_cookie = key;
+            var SID = key;
         }
         if(password !== '' && to !== ''){
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            var SIDS = SID.split(':');
             try {
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
+                var dec = decipher.update(SIDS[1],'hex','utf8');
                 dec += decipher.final('utf8');
 
                 var txid = ''
@@ -478,7 +466,7 @@ export default class ScryptaCore {
                 var rawtransaction
                 while(txid !== null && txid !== undefined && txid.length !== 64){
                     var fees = 0.001 + (i / 1000)
-                    rawtransaction = await this.build(password,false,to,amount,metadata,fees,ScryptaCore_cookie)
+                    rawtransaction = await this.build(password,false,to,amount,metadata,fees,SID)
                     //console.log(rawtransaction)
                     txid = await this.sendRawTransaction(rawtransaction.signed)
                     //console.log(txid)
@@ -513,15 +501,15 @@ export default class ScryptaCore {
     static async write(password, metadata, collection = '', refID = '', protocol = '', key = ''){
         if(password !== '' && metadata !== ''){
             if(key === ''){
-                var ScryptaCore_cookie = cookies.get('scrypta_key');
+                var SID = localStorage.getItem('SID')
             }else{
-                var ScryptaCore_cookie = key;
+                var SID = key;
             }
-            var ScryptaCore_split = ScryptaCore_cookie.split(':');
+            var SIDS = SID.split(':');
             try {
                 //console.log('WRITING TO BLOCKCHAIN')
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(ScryptaCore_split[1],'hex','utf8');
+                var dec = decipher.update(SIDS[1],'hex','utf8');
                 dec += decipher.final('utf8');
                 
                 var wallet = ScryptaCore_split[0]
@@ -554,7 +542,7 @@ export default class ScryptaCore {
                     var totalfees = 0
                     while(txid !== null && txid !== undefined && txid.length !== 64){
                         var fees = 0.001 + (i / 1000)
-                        var rawtransaction = await this.build(password,false,wallet,0,dataToWrite,fees,ScryptaCore_cookie)
+                        var rawtransaction = await this.build(password,false,wallet,0,dataToWrite,fees,SID)
                         if(rawtransaction.signed !== false){
                             txid = await this.sendRawTransaction(rawtransaction.signed)
                             if(txid !== null && txid !== false && txid.length === 64){
@@ -640,7 +628,7 @@ export default class ScryptaCore {
                         while(txid !== null && txid !== undefined && txid.length !== 64){
                             var fees = 0.001 + (i / 1000)
                             //console.log('STORING CHUNK #' + cix, chunks[cix])
-                            rawtransaction = await this.build(password,false,wallet,0,chunks[cix],fees,ScryptaCore_cookie)
+                            rawtransaction = await this.build(password,false,wallet,0,chunks[cix],fees,SID)
                             txid = await this.sendRawTransaction(rawtransaction.signed)
                             //console.log(txid)
                             if(txid !== null && txid !== false && txid.length === 64){
