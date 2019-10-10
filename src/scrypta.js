@@ -512,7 +512,7 @@ export default class ScryptaCore {
                 var dec = decipher.update(SIDS[1],'hex','utf8');
                 dec += decipher.final('utf8');
                 
-                var wallet = ScryptaCore_split[0]
+                var wallet = SIDS[0]
 
                 var Uuid = require('uuid/v4')
                 var uuid = Uuid().replace(new RegExp('-', 'g'), '.')
