@@ -8,7 +8,7 @@
   </head>
   <body style="text-align:center;">
     <div style="margin:20px auto; width:768px; display:inline-block;">
-        <h1>ScryptaCoreJ Testing Suite</h1>
+        <h1>ScryptaCore Testing Suite</h1>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet">
         <button onClick="getNewAddress()">CREATE NEW ADDRESS</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
@@ -22,7 +22,7 @@
         <button onClick="testCrypt()">TEST CRYPT / DECRYPT</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptresponse"></pre>
         <hr>
-        <button onClick="testCrypt()">TEST CRYPT / DECRYPT FILE</button><br>
+        <button>TEST CRYPT / DECRYPT FILE</button><br>
         <input type="file" onChange="testCryptFile(event)"><br>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="cryptfileresponse"></pre>
         <hr>
@@ -52,9 +52,16 @@
             if(isWriting === false){
                 document.getElementById('sendresponse').innerHTML = 'Sending 1 LYRA to ' + address + '...'
                 isWriting = true
-                window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
+                window.ScryptaCore.buildWallet(
+                    password, 
+                    address,
+                    {
+                        prv: privkey,
+                        key: pubkey,
+                    }, false
+                ).then(wallet => {
                     window.ScryptaCore.connectNode().then(node => {
-                        window.ScryptaCore.send(password, address, 1, '', wallet.walletstore).then(response => {
+                        window.ScryptaCore.send(password, address, 1, '', wallet).then(response => {
                             document.getElementById('sendresponse').innerHTML = JSON.stringify(response)
                             isWriting = false
                         })
@@ -92,9 +99,16 @@
             if(isWriting === false){
                 document.getElementById('writeresponse').innerHTML = 'Writing test data to the blockchain...'
                 isWriting = true
-                window.ScryptaCore.restoreAddress(address,pubkey,privkey,password).then(wallet => {
+                window.ScryptaCore.buildWallet(
+                    password, 
+                    address,
+                    {
+                        prv: privkey,
+                        key: pubkey,
+                    }, false
+                ).then(wallet => {
                     window.ScryptaCore.connectNode().then(node => {
-                        window.ScryptaCore.write(password, metadata, '', '', protocol, '').then(response => {
+                        window.ScryptaCore.write(password, metadata, '', '', protocol, '', wallet).then(response => {
                             document.getElementById('writeresponse').innerHTML = JSON.stringify(response)
                             isWriting = false
                         })

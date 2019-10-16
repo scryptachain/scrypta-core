@@ -201,52 +201,6 @@ export default class ScryptaCore {
         })
     }
 
-    static async restoreAddress(address, pubkey, privkey, password, saveKey = true){
-        
-        if(address !== undefined && address.length > 0 && 
-            pubkey !== undefined && pubkey.length > 0 && 
-            privkey !== undefined && privkey.length > 0 && 
-            password !== undefined && password.length > 0){
-        
-            // SIMMETRIC KEY
-            var buf = crypto.randomBytes(16);
-            var api_secret = buf.toString('hex');
-            
-            var lyrapub = address;
-            var lyraprv = privkey;
-            var lyrakey = pubkey;
-            
-            // STORE JUST LYRA WALLET 
-            var wallet = {
-                prv: lyraprv,
-                api_secret: api_secret,
-                key: lyrakey
-            };
-
-            const cipher = crypto.createCipher('aes-256-cbc', password);
-            let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
-            wallethex += cipher.final('hex');
-
-            var walletstore = lyrapub + ':' + wallethex;
-            
-            if(saveKey == true){
-                localStorage.setItem('SID',walletstore)
-            }
-
-            var response = {
-                pub: lyrapub,
-                api_secret: api_secret,
-                key: lyrakey,
-                prv: lyraprv,
-                walletstore: walletstore
-            }
-            return response;
-        }else{
-            return false;
-        }
-
-    }
-
     static async initAddress(address){
         const app = this
         const node = await app.connectNode();
@@ -271,8 +225,8 @@ export default class ScryptaCore {
     }
 
     //BROWSER KEY MANAGEMENT
-    static async saveKey(key){
-        localStorage.setItem('SID',key)
+    static async saveKey(sid){
+        localStorage.setItem('SID',sid)
         return Promise.resolve(true);
     }
 
@@ -292,7 +246,7 @@ export default class ScryptaCore {
         }
     }
 
-    static async readKey(password = '', key = ''){
+    static async readKey(password, key = ''){
         if(key === ''){
             var SID = localStorage.getItem('SID')
         }else{
@@ -307,7 +261,7 @@ export default class ScryptaCore {
                 var decrypted = JSON.parse(dec);
                 return Promise.resolve(decrypted);
             } catch (ex) {
-                console.log('WRONG PASSWORD')
+                //console.log('WRONG PASSWORD')
                 return Promise.resolve(false);
             }
         }
@@ -329,7 +283,7 @@ export default class ScryptaCore {
     static async sendRawTransaction(rawtransaction){
         const app = this
         const node = await app.connectNode();
-        if(node !== undefined){
+        if(node !== undefined && rawtransaction !== undefined){
             var txid = await axios.post(
                 node + '/sendrawtransaction',
                 { rawtransaction: rawtransaction }
@@ -358,7 +312,7 @@ export default class ScryptaCore {
         }
     }
 
-    static async build(password = '', send = false, to, amount, metadata = '', fees = 0.001, key){
+    static async build(password, send = false, to, amount, metadata = '', fees = 0.001, key){
         var SID = key;
         if(password !== ''){
             var SIDS = SID.split(':');
@@ -448,7 +402,7 @@ export default class ScryptaCore {
         }
     }
 
-    static async send(password = '', to, amount, metadata = '', key = ''){
+    static async send(password, to, amount, metadata = '', key = ''){
         if(key === ''){
             var SID = localStorage.getItem('SID');
         }else{
@@ -702,21 +656,21 @@ export default class ScryptaCore {
         })
     }
 
-    static async verifyMessage(pubkey, sighex, message){
+    static async verifyMessage(pubkey, signature, message){
         return new Promise(async response => {
             //CREATE HASH FROM MESSAGE
             let hash = CryptoJS.SHA256(message);
             let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
             //VERIFY MESSAGE
-            let signature = Buffer.from(sighex,'hex')
+            let buf = Buffer.from(signature,'hex')
             let pubKey = Buffer.from(pubkey,'hex')
-            let verified = secp256k1.verify(msg, signature, pubKey)
+            let verified = secp256k1.verify(msg, buf, pubKey)
             let address = await this.getAddressFromPubKey(pubkey)
             if(verified === true){
                 response({
                     address: address,
                     pubkey: pubkey,
-                    signature: sighex,
+                    signature: signature,
                     hash: hash.toString(CryptoJS.enc.Hex),
                     message: message,
                 })
