@@ -452,7 +452,8 @@ export default class ScryptaCore {
         }
     }
 
-    static async write(password, metadata, collection = '', refID = '', protocol = '', key = ''){
+    //PROGRESSIVE DATA MANAGEMENT
+    static async write(password, metadata, collection = '', refID = '', protocol = '', key = '', uuid = ''){
         if(password !== '' && metadata !== ''){
             if(key === ''){
                 var SID = localStorage.getItem('SID')
@@ -467,9 +468,11 @@ export default class ScryptaCore {
                 dec += decipher.final('utf8');
                 
                 var wallet = SIDS[0]
-
-                var Uuid = require('uuid/v4')
-                var uuid = Uuid().replace(new RegExp('-', 'g'), '.')
+                
+                if(uuid === ''){
+                    var Uuid = require('uuid/v4')
+                    uuid = Uuid().replace(new RegExp('-', 'g'), '.')
+                }
 
                 if(collection !== ''){
                     collection = '!*!' + collection
@@ -630,6 +633,29 @@ export default class ScryptaCore {
                 return Promise.resolve(false);
             }
         }
+    }
+
+    static async update(password, metadata, collection = '', refID = '', protocol = '', key = '', uuid){
+        return new Promise(response => {
+            if(uuid !== undefined){
+                let written = this.write(password, metadata, collection, refID, protocol, key, uuid)
+                response(written)
+            }else{
+                response(false)
+            }
+        })
+    }
+
+    static async invalidate(password, metadata, collection = '', refID = '', protocol = '', key = '', uuid){
+        return new Promise(response => {
+            if(uuid !== undefined){
+                let metadata = '*!*' + uuid + '*=>END*!*'
+                let written = this.write(password, metadata, collection, refID, protocol, key, uuid)
+                response(written)
+            }else{
+                response(false)
+            }
+        })
     }
 
     //SIGNING FUNCTIONS
