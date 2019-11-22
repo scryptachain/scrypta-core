@@ -39,13 +39,13 @@ export default class ScryptaCore {
         return new Promise(async response => {
             var checknodes = this.returnNodes()
             var connected = false
-            while(connected === false){
-                var checknode = checknodes[Math.floor(Math.random()*checknodes.length)];
-                const check = await this.checkNode(checknode)
-                if(check !== false){
+            for(var i = 0; i < checknodes.length; i++){
+                axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
+                if(check.data.blocks !== undefined){
                     connected = true
-                    response(checknode)
+                    response(check.request.responseURL.replace('/wallet/getinfo',''))
                 }
+                })
             }
         })
     }
