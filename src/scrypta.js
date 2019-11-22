@@ -41,7 +41,7 @@ export default class ScryptaCore {
             var connected = false
             for(var i = 0; i < checknodes.length; i++){
                 axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
-                if(check.data.blocks !== undefined){
+                if(check.data.blocks !== undefined && connected === false){
                     connected = true
                     response(check.request.responseURL.replace('/wallet/getinfo',''))
                 }
