@@ -30,7 +30,13 @@ export default class ScryptaCore {
 
     //IDANODE FUNCTIONS
     static returnNodes(){
-        return ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org'];
+        let mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org']
+        let testnetIdaNodes = ['https://testnet.scryptachain.org']
+        if(this.testnet === true){
+            return testnetIdaNodes
+        }else{
+            return mainnetIdaNodes
+        }
     }
 
     static testnet(value = true){
