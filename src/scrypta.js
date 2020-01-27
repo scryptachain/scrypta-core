@@ -8,21 +8,33 @@ var axios = require('axios')
 import Trx from './trx/trx.js'
 
 const lyraInfo = {
-    private: 0xae,
-    public: 0x30,
-    scripthash: 0x0d
-};
+    mainnet: {
+        private: 0xae,
+        public: 0x30,
+        scripthash: 0x0d
+    },
+    testnet: {
+        private: 0xae,
+        public: 0x7f,
+        scripthash: 0x13
+    }
+}
 
 export default class ScryptaCore {
     constructor (){
         this.RAWsAPIKey = '';
         this.PubAddress = '';
+        this.testnet = false
         ScryptaCore.clearCache()
     }
 
     //IDANODE FUNCTIONS
     static returnNodes(){
         return ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org'];
+    }
+
+    static testnet(value = true){
+        this.testnet = value
     }
     
     static async checkNode(node){
@@ -155,7 +167,11 @@ export default class ScryptaCore {
     //ADDRESS MANAGEMENT
     static async createAddress(password, saveKey = true){
         // LYRA WALLET
-        var ck = new CoinKey.createRandom(lyraInfo)
+        let params = lyraInfo.mainnet
+        if(this.testnet === true){
+            params = lyraInfo.testnet
+        }
+        var ck = new CoinKey.createRandom(params)
         
         // SIMMETRIC KEY
         var buf = crypto.randomBytes(16);
@@ -216,11 +232,15 @@ export default class ScryptaCore {
 
     static async getAddressFromPubKey(pubKey){
         return new Promise(response => {
+            let params = lyraInfo.mainnet
+            if(this.testnet === true){
+                params = lyraInfo.testnet
+            }
             let pubkeybuffer = new Buffer(pubKey,'hex')
             var sha = crypto.createHash('sha256').update(pubkeybuffer).digest()
             let pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
             var hash160Buf = new Buffer(pubKeyHash, 'hex')
-            response(cs.encode(hash160Buf, lyraInfo.public)) 
+            response(cs.encode(hash160Buf, params.public)) 
         })
     }
 
@@ -662,7 +682,11 @@ export default class ScryptaCore {
     static async signMessage(key, message){
         return new Promise(response => {
             //CREATING CK OBJECT
-            var ck = CoinKey.fromWif(key, lyraInfo);
+            let params = lyraInfo.mainnet
+            if(this.testnet === true){
+                params = lyraInfo.testnet
+            }
+            var ck = CoinKey.fromWif(key, params);
             //CREATE HASH FROM MESSAGE
             let hash = CryptoJS.SHA256(message);
             let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex');

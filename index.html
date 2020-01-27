@@ -10,6 +10,7 @@
     <div style="margin:20px auto; width:768px; display:inline-block;">
         <h1>ScryptaCore Testing Suite</h1>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet">
+        <button onClick="activateTestnet()">ACTIVATE TESTNET</button><br><br>
         <button onClick="getNewAddress()">CREATE NEW ADDRESS</button>
         <pre style="width:100%; overflow:hidden; padding:10px; overflow-x:scroll; background:#eee; border-radius:5px" id="newaddressresponse"></pre>
         <hr>
@@ -132,6 +133,10 @@
                     })
                 })
             }
+        }
+        
+        function activateTestnet(){
+            window.ScryptaCore.testnet()
         }
 
         function testCryptFile(ev){
