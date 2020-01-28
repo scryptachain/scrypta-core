@@ -675,7 +675,7 @@ export default class ScryptaCore {
     static async invalidate(password, key = '', uuid){
         return new Promise(response => {
             if(uuid !== undefined){
-                let metadata = '*!*' + uuid + '*=>END*!*'
+                let metadata = 'END'
                 let written = this.write(password, metadata, '', '', '', key, uuid)
                 response(written)
             }else{
