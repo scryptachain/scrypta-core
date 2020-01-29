@@ -90,9 +90,9 @@
         }
 
         function testWrite(){
-            var address = 'LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2'
-            var pubkey = '03a2b152761ab5b8aedbb07dea15dedacf12a68abd8b73a4f99a6f1f322792ee27'
-            var privkey = 'Sq9GWa9vyM1HghsnVan5UJhtx2GumTaLBTHgDhCW4abjzZLmsYmr'
+            var address = 'LXgW4krM6fjJnMjoWtRHf5ePScSDKzZx1M'
+            var pubkey = '0376a9dddb8d8976031e8f2022c0ed8c537416d5ef0646c3b5be34bfc5c10491a0'
+            var privkey = 'SqViTNaa4v7cA2wurXMKJ5SKUVT67u4W6rjGDxsJGhYeAfx3KxkB'
             var password = 'test'
             var metadata = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis quis risus auctor, eleifend neque sit amet, ultricies nulla. Suspendisse condimentum nisi ut nunc mattis, vel congue velit congue. Aliquam sit amet pharetra tellus. Etiam tellus lacus, pretium vel commodo a, tempor nec ante. Aenean turpis nisi, pulvinar eget vehicula at, dapibus at dui. Cras vitae dictum massa. Sed in orci lorem. Nullam ut mattis lacus. Mauris ut mattis tellus. Donec et posuere lorem, id elementum ligula. Aliquam eu mollis neque, eget venenatis erat. Aenean vestibulum nunc diam, et luctus massa porttitor ac. Morbi tempor eleifend bibendum. Curabitur sed diam leo.'
             var protocol = ''
@@ -109,7 +109,7 @@
                     }, false
                 ).then(wallet => {
                     window.ScryptaCore.connectNode().then(node => {
-                        window.ScryptaCore.write(password, metadata, '', '', protocol, '', wallet).then(response => {
+                        window.ScryptaCore.write(password, metadata, '', '', protocol, wallet, '').then(response => {
                             document.getElementById('writeresponse').innerHTML = JSON.stringify(response)
                             isWriting = false
                         })

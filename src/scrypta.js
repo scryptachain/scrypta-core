@@ -340,6 +340,7 @@ export default class ScryptaCore {
 
     static async build(password, send = false, to, amount, metadata = '', fees = 0.001, key){
         var SID = key;
+        var MAX_OPRETURN = 7500
         if(password !== ''){
             var SIDS = SID.split(':');
             try {
@@ -389,7 +390,7 @@ export default class ScryptaCore {
                             trx.addoutput(from,change);
                         }
                         if(metadata !== ''){
-                            if(metadata.length <= 80){
+                            if(metadata.length <= MAX_OPRETURN){
                                 //console.log('ADDING METADATA TO TX', metadata)
                                 trx.addmetadata(metadata);
                             }else{
@@ -487,6 +488,7 @@ export default class ScryptaCore {
                 var SID = key;
             }
             var SIDS = SID.split(':');
+            var MAX_OPRETURN = 7500
             try {
                 //console.log('WRITING TO BLOCKCHAIN')
                 var decipher = crypto.createDecipher('aes-256-cbc', password);
@@ -519,13 +521,14 @@ export default class ScryptaCore {
                 }
 
                 var dataToWrite = '*!*' + uuid+collection+refID+protocol+ '*=>' + metadata + '*!*'
-                if(dataToWrite.length <= 80){
+                if(dataToWrite.length <= MAX_OPRETURN){
                     var txid = ''
                     var i = 0
                     var totalfees = 0
                     while(txid !== null && txid !== undefined && txid.length !== 64){
                         var fees = 0.001 + (i / 1000)
                         var rawtransaction = await this.build(password,false,wallet,0,dataToWrite,fees,SID)
+                        // console.log(rawtransaction.signed)
                         if(rawtransaction.signed !== false){
                             txid = await this.sendRawTransaction(rawtransaction.signed)
                             if(txid !== null && txid !== false && txid.length === 64){
@@ -568,35 +571,37 @@ export default class ScryptaCore {
                 }else{
                     
                     var txs = []
+                    var chunklength = MAX_OPRETURN - 6
+                    var chunkdatalimit = chunklength - 3
                     var dataToWriteLength = dataToWrite.length
-                    var nchunks = Math.ceil(dataToWriteLength / 74)
+                    var nchunks = Math.ceil(dataToWriteLength / chunklength)
                     var last = nchunks - 1
                     var chunks = []
 
                     for (var i=0; i<nchunks; i++){
-                        var start = i * 74
-                        var end = start + 74
+                        var start = i * chunklength
+                        var end = start + chunklength
                         var chunk = dataToWrite.substring(start,end)
 
                         if(i === 0){
-                            var startnext = (i + 1) * 74
-                            var endnext = startnext + 74
+                            var startnext = (i + 1) * chunklength
+                            var endnext = startnext + chunklength
                             var prevref = ''
                             var nextref = dataToWrite.substring(startnext,endnext).substring(0,3)
                         } else if(i === last){
-                            var startprev = (i - 1) * 74
-                            var endprev = startprev + 74
+                            var startprev = (i - 1) * chunklength
+                            var endprev = startprev + chunklength
                             var nextref = ''
-                            var prevref = dataToWrite.substr(startprev,endprev).substr(71,3)
+                            var prevref = dataToWrite.substr(startprev,endprev).substr(chunkdatalimit,3)
                         } else {
                             var sni = i + 1
-                            var startnext = sni * 74
-                            var endnext = startnext + 74
+                            var startnext = sni * chunklength
+                            var endnext = startnext + chunklength
                             var nextref = dataToWrite.substring(startnext,endnext).substring(0,3)
                             var spi = i - 1
-                            var startprev = spi * 74
-                            var endprev = startprev + 74
-                            var prevref = dataToWrite.substr(startprev,endprev).substr(71,3)
+                            var startprev = spi * chunklength
+                            var endprev = startprev + chunklength
+                            var prevref = dataToWrite.substr(startprev,endprev).substr(chunkdatalimit,3)
                         }
                         chunk = prevref + chunk + nextref
                         chunks.push(chunk)
