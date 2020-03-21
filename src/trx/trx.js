@@ -51,7 +51,7 @@ var B58 = {
 	}
 }
 
-export default class BitJS {
+module.exports = class BitJS {
 
 	constructor (){
 		/* public vars */

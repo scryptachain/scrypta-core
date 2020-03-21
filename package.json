@@ -1,15 +1,18 @@
 {
-  "name": "scrypta-core",
-  "version": "1.1.1",
+  "name": "@scrypta/core",
+  "version": "1.1.4",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --config webpack.prod.js",
-    "start": "webpack-dev-server --open --config webpack.dev.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "Scrypta Task Force",
+  "keywords": [
+    "blockchain",
+    "scrypta",
+    "scryptachain"
+  ],
+  "author": "Scrypta",
   "license": "MIT",
   "devDependencies": {
     "webpack": "^4.27.1",
@@ -32,6 +35,7 @@
     "html-webpack-plugin": "^3.2.0",
     "lodash": "^4.17.15",
     "node-rsa": "^1.0.1",
+    "pouchdb": "^7.2.1",
     "ripemd160": "^2.0.2",
     "secp256k1": "^3.7.1",
     "secure-random": "^1.1.1",
