@@ -2,3 +2,4 @@ node_modules
 ScryptaCore
 ScryptaTXIDCache
 ScryptaUTXOCache
+ScryptaP2PMessages

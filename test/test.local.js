@@ -10,4 +10,9 @@ scrypta.createAddress(password, true).then(async res => {
 
     // SHOULD CONNECT TO ALL IDANODES
     scrypta.connectP2P(res.pub, password)
+
+    // SUOLD SEND A MESSAGE
+    setTimeout(function(){
+        scrypta.broadcast(res.pub, password, 'message', 'Hi!')
+    },5000)
 })

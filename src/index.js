@@ -21,7 +21,6 @@ const lyraInfo = {
     }
 }
 
-const portP2P = 42224
 global['io'] = { server: null, client: null, sockets: {} }
 global['nodes'] = {}
 global['connected'] = {}
@@ -31,15 +30,17 @@ module.exports = class ScryptaCore {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
         this.testnet = false
+        this.portP2P = 42226
         this.storage = new PouchDB('ScryptaCore')
         this.txidCache = new PouchDB('ScryptaTXIDCache')
         this.utxoCache = new PouchDB('ScryptaUTXOCache')
+        this.messages = new PouchDB('ScryptaP2PMessages')
         this.clearCache()
     }
 
     //IDANODE FUNCTIONS
      returnNodes(){
-        let mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
+        let mainnetIdaNodes = ['http://localhost:3001','https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
         let testnetIdaNodes = ['https://testnet.scryptachain.org']
         if(this.testnet === true){
             return testnetIdaNodes
@@ -250,17 +251,17 @@ module.exports = class ScryptaCore {
         var pubkey = ck.publicKey.toString('hex');
         return pubkey;
     }
-
-     async getAddressFromPubKey(pubKey){
+    
+    async getAddressFromPubKey(pubKey){
         return new Promise(response => {
             let params = lyraInfo.mainnet
             if(this.testnet === true){
                 params = lyraInfo.testnet
             }
-            let pubkeybuffer = new Buffer(pubKey,'hex')
+            let pubkeybuffer = Buffer.from(pubKey,'hex')
             var sha = crypto.createHash('sha256').update(pubkeybuffer).digest()
             let pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
-            var hash160Buf = new Buffer(pubKeyHash, 'hex')
+            var hash160Buf = Buffer.from(pubKeyHash, 'hex')
             response(cs.encode(hash160Buf, params.public)) 
         })
     }
@@ -715,7 +716,7 @@ module.exports = class ScryptaCore {
                 message: message,
                 hash: hash.toString(CryptoJS.enc.Hex),
                 signature: sigObj.signature.toString('hex'),
-                pubkey: pubKey.toString('hex'),
+                pubKey: pubKey.toString('hex'),
                 address: ck.publicAddress
             })
         })
@@ -748,6 +749,7 @@ module.exports = class ScryptaCore {
     // P2P FUNCTIONALITIES
 
     async connectP2P(key, password){
+        const app = this
         let nodes = await this.returnNodes()
         key = await this.returnKey(key)
         let SIDS = key.split(':')
@@ -758,14 +760,64 @@ module.exports = class ScryptaCore {
             for(let x in nodes){
                 let node = nodes[x]
                 console.log('Bootstrap connection to ' + node)
-                var socket = require('socket.io-client')(node.replace('https','http') + ':42226');
-                socket.on('connect', function(){
-                    console.log('Connected to node ' + node)
-                });
-                socket.on('disconnect', function(){
+                global['nodes'][node] = require('socket.io-client')(node.replace('https','http') + ':' + this.portP2P, { reconnect: true })
+                global['nodes'][node].on('connect', function () {
+                    console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                    global['connected'][node] = true
+                })
+                global['nodes'][node].on('disconnect', function () {
+                    console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
+                    global['connected'][node] = false
+                })
 
-                });
+                //PROTOCOLS
+                global['nodes'][node].on('message', async function (data) {
+                    let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
+                    if(verified !== false){
+                        app.messages.get(data.signature).then(function (doc) {
+                            // MESSAGE RECEIVED YET
+                        }).catch(async function (err) {
+                            if(err.status === 404){
+                                await app.messages.put({
+                                    _id: data.signature,
+                                    message: data.message,
+                                    pubKey: data.pubKey,
+                                    address: verified.address
+                                }).catch(err => {
+                                    // console.log(err)
+                                }).then(success => {
+                                    console.log('Received message from ' + data.address + ': ' + data.message)
+                                })
+                            }
+                        });
+                    }
+                })
             }
+        }
+    }
+
+    async broadcast(key, password, protocol, message, socketID = '', nodeID = ''){
+        const app = this
+        let nodes = await this.returnNodes()
+        key = await this.returnKey(key)
+        let SIDS = key.split(':')
+        let address = SIDS[0]
+        let wallet = await this.readKey(password, key)
+        if(wallet !== false){
+            let signed = await app.signMessage(wallet.prv, message)
+            
+            return new Promise(async response => {
+                if(nodeID === ''){
+                    for (let id in global['nodes']) {
+                        global['nodes'][id].emit(protocol, signed)
+                    }
+                }else{
+                    if(global['nodes'][nodeID]){
+                        global['nodes'][nodeID].emit(protocol, signed)
+                    }
+                }
+                response(message)
+            })
         }
     }
 
