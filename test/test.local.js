@@ -14,7 +14,7 @@ scrypta.createAddress(password, true).then(async res => {
     })
 
     // SUOLD SEND A MESSAGE
-    setTimeout(function(){
-        scrypta.broadcast(res.pub, password, 'message', 'Hi!')
-    },5000)
+    setInterval(function(){
+        scrypta.broadcast(res.pub, password, 'message', 'Now are '+ new Date() +'!')
+    },2500)
 })

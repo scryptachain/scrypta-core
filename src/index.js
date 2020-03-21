@@ -788,7 +788,6 @@ module.exports = class ScryptaCore {
                                 }).catch(err => {
                                     // console.log(err)
                                 }).then(success => {
-                                    //console.log('Received message from ' + data.address + ': ' + data.message)
                                     callback(data)
                                 })
                             }
@@ -801,10 +800,8 @@ module.exports = class ScryptaCore {
 
     async broadcast(key, password, protocol, message, socketID = '', nodeID = ''){
         const app = this
-        let nodes = await this.returnNodes()
         key = await this.returnKey(key)
         let SIDS = key.split(':')
-        let address = SIDS[0]
         let wallet = await this.readKey(password, key)
         if(wallet !== false){
             let signed = await app.signMessage(wallet.prv, message)
