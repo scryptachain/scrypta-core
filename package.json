@@ -1,12 +1,16 @@
 {
   "name": "@scrypta/core",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
+  "bin": {
+    "scrypta": "./src/cli.js"
+  },
   "scripts": {
     "test:local": "mocha test/test.local.js",
-    "test:npm": "mocha test/test.npm.js"
+    "test:npm": "mocha test/test.npm.js",
+    "test:static": "node test/test.static.js"
   },
   "keywords": [
     "blockchain",
@@ -45,7 +49,8 @@
     "secure-random": "^1.1.1",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {
     "mocha": "^7.1.1"

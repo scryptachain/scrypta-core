@@ -30,6 +30,8 @@ module.exports = class ScryptaCore {
     constructor (){
         this.RAWsAPIKey = ''
         this.PubAddress = ''
+        this.mainnetIdaNodes = ['http://localhost:3001','https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
+        this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.testnet = false
         this.portP2P = 42226
         this.storage = new PouchDB('ScryptaCore')
@@ -41,12 +43,10 @@ module.exports = class ScryptaCore {
 
     //IDANODE FUNCTIONS
     returnNodes(){
-        let mainnetIdaNodes = ['http://localhost:3001','https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
-        let testnetIdaNodes = ['https://testnet.scryptachain.org']
         if(this.testnet === true){
-            return testnetIdaNodes
+            return this.testnetIdaNodes
         }else{
-            return mainnetIdaNodes
+            return this.mainnetIdaNodes
         }
     }
 
@@ -95,6 +95,8 @@ module.exports = class ScryptaCore {
                                 response(check.config.url.replace('/wallet/getinfo',''))
                             }
                         }
+                    }).catch(err => {
+                        // console.log("Can\'t connect to " + err.config.url.replace('/wallet/getinfo','') )
                     })
                 }catch(err){
                     console.log(err)
