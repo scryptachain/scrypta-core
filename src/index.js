@@ -40,7 +40,7 @@ module.exports = class ScryptaCore {
     }
 
     //IDANODE FUNCTIONS
-     returnNodes(){
+    returnNodes(){
         let mainnetIdaNodes = ['http://localhost:3001','https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
         let testnetIdaNodes = ['https://testnet.scryptachain.org']
         if(this.testnet === true){
@@ -48,6 +48,24 @@ module.exports = class ScryptaCore {
         }else{
             return mainnetIdaNodes
         }
+    }
+
+    post(endpoint, params){
+        const app = this
+        return new Promise(async response => {
+            let node = await app.connectNode()
+            let res = await axios.post(node + endpoint, params).catch(err => { response(err)})
+            response(res.data)
+        })
+    }
+
+    get(endpoint){
+        const app = this
+        return new Promise(async response => {
+            let node = await app.connectNode()
+            let res = await axios.get(node + endpoint).catch(err => { response(err)})
+            response(res.data)
+        })
     }
 
     testnet(value = true){
@@ -69,12 +87,18 @@ module.exports = class ScryptaCore {
             var checknodes = this.returnNodes()
             var connected = false
             for(var i = 0; i < checknodes.length; i++){
-                axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
-                if(check.data.blocks !== undefined && connected === false){
-                    connected = true
-                    response(check.request.responseURL.replace('/wallet/getinfo',''))
+                try{
+                    axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
+                        if(check.data.blocks !== undefined && connected === false){
+                            connected = true
+                            if(check.config.url !== undefined){
+                                response(check.config.url.replace('/wallet/getinfo',''))
+                            }
+                        }
+                    })
+                }catch(err){
+                    console.log(err)
                 }
-                })
             }
         })
     }
