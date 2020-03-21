@@ -21,6 +21,11 @@ const lyraInfo = {
     }
 }
 
+const portP2P = 42224
+global['io'] = { server: null, client: null, sockets: {} }
+global['nodes'] = {}
+global['connected'] = {}
+
 module.exports = class ScryptaCore {
     constructor (){
         this.RAWsAPIKey = ''
@@ -278,7 +283,7 @@ module.exports = class ScryptaCore {
         let wallet = await this.returnKey(key)
         if(wallet !== false){
             if(password !== ''){
-                var SIDS = SID.split(':');
+                var SIDS = key.split(':');
                 try {
                     var decipher = crypto.createDecipher('aes-256-cbc', password);
                     var dec = decipher.update(SIDS[1],'hex','utf8');
@@ -716,7 +721,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-     async verifyMessage(pubkey, signature, message){
+    async verifyMessage(pubkey, signature, message){
         return new Promise(async response => {
             //CREATE HASH FROM MESSAGE
             let hash = CryptoJS.SHA256(message);
@@ -739,4 +744,29 @@ module.exports = class ScryptaCore {
             }
         })
     }
+
+    // P2P FUNCTIONALITIES
+
+    async connectP2P(key, password){
+        let nodes = await this.returnNodes()
+        key = await this.returnKey(key)
+        let SIDS = key.split(':')
+        let address = SIDS[0]
+        let wallet = await this.readKey(password, key)
+        if(wallet !== false){
+            console.log('Loaded identity ' + address)
+            for(let x in nodes){
+                let node = nodes[x]
+                console.log('Bootstrap connection to ' + node)
+                var socket = require('socket.io-client')(node.replace('https','http') + ':42226');
+                socket.on('connect', function(){
+                    console.log('Connected to node ' + node)
+                });
+                socket.on('disconnect', function(){
+
+                });
+            }
+        }
+    }
+
 }

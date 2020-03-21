@@ -42,6 +42,8 @@
     "ripemd160": "^2.0.2",
     "secp256k1": "^3.7.1",
     "secure-random": "^1.1.1",
+    "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0",
     "uuid": "^3.3.2"
   }
 }
