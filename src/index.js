@@ -24,6 +24,7 @@ const lyraInfo = {
 global['io'] = { server: null, client: null, sockets: {} }
 global['nodes'] = {}
 global['connected'] = {}
+global['cache'] = []
 
 module.exports = class ScryptaCore {
     constructor (){
@@ -773,7 +774,8 @@ module.exports = class ScryptaCore {
                 //PROTOCOLS
                 global['nodes'][node].on('message', async function (data) {
                     let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
-                    if(verified !== false){
+                    if(verified !== false && global['cache'].indexOf(data.signature) === -1){
+                        global['cache'].push(data.signature)
                         app.messages.get(data.signature).then(function (doc) {
                             // MESSAGE RECEIVED YET
                         }).catch(async function (err) {
