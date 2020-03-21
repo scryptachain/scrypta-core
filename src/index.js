@@ -749,7 +749,7 @@ module.exports = class ScryptaCore {
 
     // P2P FUNCTIONALITIES
 
-    async connectP2P(key, password){
+    async connectP2P(key, password, callback){
         const app = this
         let nodes = await this.returnNodes()
         key = await this.returnKey(key)
@@ -784,11 +784,12 @@ module.exports = class ScryptaCore {
                                     _id: data.signature,
                                     message: data.message,
                                     pubKey: data.pubKey,
-                                    address: verified.address
+                                    address: data.address
                                 }).catch(err => {
                                     // console.log(err)
                                 }).then(success => {
-                                    console.log('Received message from ' + data.address + ': ' + data.message)
+                                    //console.log('Received message from ' + data.address + ': ' + data.message)
+                                    callback(data)
                                 })
                             }
                         });
