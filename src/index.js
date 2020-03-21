@@ -781,17 +781,17 @@ module.exports = class ScryptaCore {
         let address = SIDS[0]
         let wallet = await this.readKey(password, key)
         if(wallet !== false){
-            console.log('Loaded identity ' + address)
+            // console.log('Loaded identity ' + address)
             for(let x in nodes){
                 let node = nodes[x]
-                console.log('Bootstrap connection to ' + node)
+                // console.log('Bootstrap connection to ' + node)
                 global['nodes'][node] = require('socket.io-client')(node.replace('https','http') + ':' + this.portP2P, { reconnect: true })
                 global['nodes'][node].on('connect', function () {
-                    console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                    // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
                     global['connected'][node] = true
                 })
                 global['nodes'][node].on('disconnect', function () {
-                    console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
+                    // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
                     global['connected'][node] = false
                 })
 

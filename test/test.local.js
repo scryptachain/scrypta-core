@@ -3,7 +3,6 @@ let scrypta = new ScryptaCore
 var assert = require('assert')
 const password = '123456'
 
-
 describe('Addresses', async function() {
     it('Address should be length 34 bytes', async function(){
         let address = await scrypta.createAddress(password, false)
@@ -42,29 +41,17 @@ describe('Idanodes', async function() {
     })
 });
 
-/*
-// SHOULD CREATE ADDRESS
-let password = '123456'
-scrypta.createAddress(password, true).then(async res => {
-    // SHOULD RETURN THE WALLETSTORE
-    let walletstore = await scrypta.returnKey(res.pub)
-    console.log(walletstore)
-
-    // SHOULD GET AN IDANODE
-    let getinfo = await scrypta.get('/wallet/getinfo')
-    console.log(JSON.stringify(getinfo))
-
-    // SHOULD POST AN IDANODE
-    let init = await scrypta.post('/init',{address: res.pub})
-    console.log(JSON.stringify(init))
-
-    // SHOULD CONNECT TO ALL IDANODES
-    scrypta.connectP2P(res.pub, password, function(received){
-        console.log('Received ' + JSON.stringify(received))
+describe('P2P Network', async function() {
+    it('Should connect to p2p network and send a message', function(){
+        this.timeout(10000)
+        return new Promise(async response => {
+            let address = await scrypta.createAddress(password, false)
+            scrypta.connectP2P(address.walletstore, password, function(received){
+                response(received)
+            })
+            setTimeout(function(){
+                scrypta.broadcast(address.walletstore, password, 'message', 'Now are '+ new Date() +'!')
+            },3500)
+        })
     })
-
-    // SHUOLD SEND A MESSAGE
-    setInterval(function(){
-        scrypta.broadcast(res.pub, password, 'message', 'Now are '+ new Date() +'!')
-    },2500)
-})*/
+})
