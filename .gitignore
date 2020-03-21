@@ -1,2 +1,4 @@
 node_modules
 ScryptaCore
+ScryptaTXIDCache
+ScryptaUTXOCache

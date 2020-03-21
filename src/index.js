@@ -6,7 +6,7 @@ const secp256k1 = require('secp256k1')
 const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
-var PouchDB = require('pouchdb');
+var PouchDB = require('pouchdb')
 
 const lyraInfo = {
     mainnet: {
@@ -27,6 +27,9 @@ module.exports = class ScryptaCore {
         this.PubAddress = ''
         this.testnet = false
         this.storage = new PouchDB('ScryptaCore')
+        this.txidCache = new PouchDB('ScryptaTXIDCache')
+        this.utxoCache = new PouchDB('ScryptaUTXOCache')
+        this.clearCache()
     }
 
     //IDANODE FUNCTIONS
@@ -72,53 +75,60 @@ module.exports = class ScryptaCore {
     //CACHE FUNCTIONS
     async clearCache(){
         return new Promise(async response => {
-            let TxidCache = new PouchDB('ScryptaTXIDCache')
-            await TxidCache.destroy()
-            
-            let UtxoCache = new PouchDB('ScryptaUTXOCache')
-            await UtxoCache.destroy()
+            await this.txidCache.destroy()
+            await this.utxoCache.destroy()
             response(true)
         })
     }
 
     async returnTXIDCache(){
         return new Promise(async response => {
-            var cache = await localStorage.getItem('ScryptaTXIDCache')
-            if(cache === null){
-                cache = []
-            }else{
-                cache = JSON.parse(cache)
-            }
-            response(cache)
+            this.txidCache.allDocs(db.allDocs({
+                include_docs: true
+            }).then(function (result) {
+                let array = []
+                for(let x in result){
+                    array.push(result[x].txid)
+                }
+                response(array)
+            }).catch(function (err) {
+                response(false)
+            }))
         })
     }
 
     async pushTXIDtoCache(txid){
         return new Promise(async response => {
-            let cache = await this.returnTXIDCache()
-            cache.push(txid)
-            await localStorage.setItem('ScryptaTXIDCache',JSON.stringify(cache))
+            await this.txidCache.put({
+                _id: txid,
+                txid: txid
+            })
             response(true)
         })
     }
 
     async returnUTXOCache(){
         return new Promise(async response => {
-            var cache = await localStorage.getItem('ScryptaUTXOCache')
-            if(cache === null){
-                cache = []
-            }else{
-                cache = JSON.parse(cache)
-            }
-            response(cache)
+            this.utxoCache.allDocs(db.allDocs({
+                include_docs: true
+            }).then(function (result) {
+                let array = []
+                for(let x in result){
+                    array.push(result[x].utxo)
+                }
+                response(array)
+            }).catch(function (err) {
+                response(false)
+            }))
         })
     }
 
     async pushUTXOtoCache(utxo){
         return new Promise(async response => {
-            let cache = await this.returnUTXOCache()
-            cache.push(utxo)
-            await localStorage.setItem('ScryptaUTXOCache',JSON.stringify(cache))
+            await this.txidCache.put({
+                _id: utxo,
+                utxo: utxo
+            })
             response(true)
         })
     }
@@ -216,7 +226,7 @@ module.exports = class ScryptaCore {
                 await this.storage.put({
                     _id: pub,
                     wallet: walletstore
-                  })
+                })
             }
 
             response(walletstore)
