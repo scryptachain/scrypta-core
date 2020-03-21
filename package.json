@@ -1,6 +1,6 @@
 {
   "name": "@scrypta/core",
-  "version": "1.1.4",
+  "version": "1.1.6",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
@@ -13,13 +13,15 @@
     "scryptachain"
   ],
   "author": "Scrypta",
-  "license": "MIT",
-  "devDependencies": {
-    "webpack": "^4.27.1",
-    "webpack-cli": "^3.1.2",
-    "webpack-dev-server": ">=3.1.11",
-    "webpack-merge": "^4.1.4"
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/scryptachain/scrypta-core"
   },
+  "bugs": { 
+    "url" : "https://github.com/scryptachain/scrypta-core/issues",
+    "email" : "sebastiano.c@scrypta.foundation"
+  },
+  "license": "MIT",
   "dependencies": {
     "axios": "^0.19.0",
     "binstring": "^0.2.1",
