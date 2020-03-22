@@ -26,6 +26,10 @@ describe('Addresses', async function() {
         let key = await scrypta.importPrivateKey(address.prv, password)
         assert.equal(key.prv, address.prv);
     })
+    it('Should return all identities', async function(){
+        let identities = await scrypta.returnIdentities()
+        assert.notEqual(0, identities.count);
+    })
 });
 
 describe('Idanodes', async function() {

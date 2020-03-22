@@ -116,7 +116,7 @@ module.exports = class ScryptaCore {
 
     async returnTXIDCache(){
         return new Promise(async response => {
-            this.txidCache.allDocs(db.allDocs({
+            this.txidCache.allDocs({
                 include_docs: true
             }).then(function (result) {
                 let array = []
@@ -126,7 +126,7 @@ module.exports = class ScryptaCore {
                 response(array)
             }).catch(function (err) {
                 response(false)
-            }))
+            })
         })
     }
 
@@ -142,7 +142,7 @@ module.exports = class ScryptaCore {
 
     async returnUTXOCache(){
         return new Promise(async response => {
-            this.utxoCache.allDocs(db.allDocs({
+            this.utxoCache.allDocs({
                 include_docs: true
             }).then(function (result) {
                 let array = []
@@ -152,7 +152,7 @@ module.exports = class ScryptaCore {
                 response(array)
             }).catch(function (err) {
                 response(false)
-            }))
+            })
         })
     }
 
@@ -871,6 +871,22 @@ module.exports = class ScryptaCore {
 
 
     // IDENTITIES FUNCTIONS
+    returnIdentities(){
+        return new Promise(response => {
+            this.storage.allDocs({
+                include_docs: true
+            }).then(function (result) {
+                let array = []
+                for(let x in result.rows){
+                    array.push(result.rows[x].doc.wallet)
+                }
+                response(array)
+            }).catch(function (err) {
+                response(false)
+            })
+        })
+    }
+    
     fetchIdentities(address){
         return new Promise(async response => {
             const app = this
