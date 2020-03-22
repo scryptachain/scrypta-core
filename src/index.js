@@ -246,7 +246,7 @@ module.exports = class ScryptaCore {
         return response;
     }
 
-     async buildWallet(password, pub, wallet, saveKey){
+    async buildWallet(password, pub, wallet, saveKey){
         return new Promise(async response => {
 
             const cipher = crypto.createCipher('aes-256-cbc', password);
@@ -259,6 +259,8 @@ module.exports = class ScryptaCore {
                 await this.storage.put({
                     _id: pub,
                     wallet: walletstore
+                }).catch(err => {
+                    // console.log(err)
                 })
             }
 
@@ -293,6 +295,27 @@ module.exports = class ScryptaCore {
         })
     }
 
+
+    importPrivateKey(key, password){
+        return new Promise(async response => {
+            let lyrakey = await this.getPublicKey(key)
+            let lyrapub = await this.getAddressFromPubKey(lyrakey)
+            
+            var wallet = {
+                prv: key,
+                key: lyrakey
+            }
+            var walletstore = await this.buildWallet(password, lyrapub, wallet, true)
+            
+            response({
+                pub: lyrapub,
+                key: lyrakey,
+                prv: key,
+                walletstore: walletstore
+            })
+        })
+    }
+    
     returnKey(address){
         if(address.length === 34){
             return new Promise(async response => {
@@ -827,7 +850,6 @@ module.exports = class ScryptaCore {
     async broadcast(key, password, protocol, message, socketID = '', nodeID = ''){
         const app = this
         key = await this.returnKey(key)
-        let SIDS = key.split(':')
         let wallet = await this.readKey(password, key)
         if(wallet !== false){
             let signed = await app.signMessage(wallet.prv, message)
@@ -847,4 +869,19 @@ module.exports = class ScryptaCore {
         }
     }
 
+
+    // IDENTITIES FUNCTIONS
+    fetchIdentities(address){
+        return new Promise(async response => {
+            const app = this
+            if(wallet !== false){
+                let identities = app.post('/read', { dapp_address: address, protocol: 'I://' }).catch(err => {
+                    response(err)
+                })
+                response(identities.data.data)
+            }else{
+                response(false)
+            }
+        })
+    }
 }

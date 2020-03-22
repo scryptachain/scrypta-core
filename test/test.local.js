@@ -21,6 +21,11 @@ describe('Addresses', async function() {
         let readed = await scrypta.readKey(password, address.walletstore)
         assert.equal(readed.key, address.key);
     })
+    it('Should import a private key', async function(){
+        let address = await scrypta.createAddress(password, false)
+        let key = await scrypta.importPrivateKey(address.prv, password)
+        assert.equal(key.prv, address.prv);
+    })
 });
 
 describe('Idanodes', async function() {
