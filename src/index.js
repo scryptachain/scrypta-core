@@ -6,7 +6,7 @@ const secp256k1 = require('secp256k1')
 const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
-var PouchDB = require('pouchdb')
+var PouchDB
 
 const lyraInfo = {
     mainnet: {
@@ -27,13 +27,18 @@ global['connected'] = {}
 global['cache'] = []
 
 module.exports = class ScryptaCore {
-    constructor (){
+    constructor (isBrowser = false){
         this.RAWsAPIKey = ''
         this.PubAddress = ''
         this.mainnetIdaNodes = ['http://localhost:3001','https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.testnet = false
         this.portP2P = 42226
+        if(isBrowser){
+            PouchDB = require('pouchdb-browser')
+        }else{
+            PouchDB = require('pouchdb')
+        }
         this.storage = new PouchDB('ScryptaCore')
         this.txidCache = new PouchDB('ScryptaTXIDCache')
         this.utxoCache = new PouchDB('ScryptaUTXOCache')
