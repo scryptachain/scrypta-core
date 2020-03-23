@@ -300,10 +300,13 @@ module.exports = class ScryptaCore {
             let SID = localStorage.getItem('SID')
             if(SID !== null){
                 let SIDS = SID.split(':')
-                await db.put('wallet',{
-                    address: SIDS[0],
-                    wallet: SIDS[1]
-                })
+                let check = db.get('wallet',address,SIDS[0])
+                if(!check){
+                    await db.put('wallet',{
+                        address: SIDS[0],
+                        wallet: SIDS[1]
+                    })
+                }
             }
         }
     }
@@ -943,12 +946,13 @@ module.exports = class ScryptaCore {
         })
     }
 
-    selectIdentityBrowser(address){
+    setDefaultIdentity(address){
         const app = this
         return new Promise(response => {
             if(app.isBrowser){
                 const db = new ScryptaDB(app.isBrowser)
                 let wallet = db.get('wallet','address',address)
+                console.log(wallet)
                 if(wallet !== false){
                     localStorage.setItem('SID', wallet.wallet)
                     response(true)
