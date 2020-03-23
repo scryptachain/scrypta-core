@@ -838,7 +838,7 @@ module.exports = class ScryptaCore {
                         let check = await db.get('messages','signature',data.signature)
                         if(!check){
                             await db.put('messages',{
-                                _id: data.signature,
+                                signature: data.signature,
                                 message: data.message,
                                 pubKey: data.pubKey,
                                 address: data.address
