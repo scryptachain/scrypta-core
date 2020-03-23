@@ -288,10 +288,11 @@ module.exports = class ScryptaCore {
 
     async importBrowserSID(){
         const app = this
+        const db = new ScryptaDB(app.isBrowser)
         if(app.isBrowser){
             let SID = localStorage.getItem('SID')
             if(SID !== null){
-                let SIDS = SID.explore(':')
+                let SIDS = SID.split(':')
                 await db.put('wallet',{
                     address: SIDS[0],
                     wallet: SIDS[1]
