@@ -7,6 +7,7 @@ const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
+const { generateKeyPair } = require('crypto');
 
 const lyraInfo = {
     mainnet: {
@@ -896,6 +897,76 @@ module.exports = class ScryptaCore {
         })
     }
     
+    returnIdentity(address){
+        const app = this
+        return new Promise(response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let wallet = db.get('wallet','address',address)
+            if(wallet !== false){
+                response(wallet)
+            }else{
+                response(false)
+            }
+        })
+    }
+
+    createRSAKeys(address, password){
+        const app = this
+        return new Promise(async response => {
+            let wallet = await app.returnKey(address)
+            const db = new ScryptaDB(app.isBrowser)
+            let SIDS = wallet.split(':')
+            let stored = await db.get('wallet','address',SIDS[0])
+            if(stored.rsa === undefined){
+                let key = await app.readKey(password, wallet)
+                if(key !== false){
+                    generateKeyPair('rsa', {
+                        modulusLength: 4096,
+                        publicKeyEncoding: {
+                            type: 'spki',
+                            format: 'pem'
+                        },
+                        privateKeyEncoding: {
+                            type: 'pkcs8',
+                            format: 'pem',
+                            cipher: 'aes-256-cbc',
+                            passphrase: password
+                        }
+                        }, async (err, publicKey, privateKey) => {
+                            stored.rsa = {
+                                pub: publicKey,
+                                prv: privateKey
+                            }
+                            await db.update('wallet','address',stored.address,stored)
+                            response(true)
+                        });
+                }else{
+                    response(false)
+                }
+            }else{
+                response(wallet.rsa)
+            }
+        })
+    }
+
+    selectIdentityBrowser(address){
+        const app = this
+        return new Promise(response => {
+            if(app.isBrowser){
+                const db = new ScryptaDB(app.isBrowser)
+                let wallet = db.get('wallet','address',address)
+                if(wallet !== false){
+                    localStorage.setItem('SID', wallet.wallet)
+                    response(true)
+                }else{
+                    response(false)
+                }
+            }else{
+                response(false)
+            }
+        })
+    }
+
     fetchIdentities(address){
         return new Promise(async response => {
             const app = this

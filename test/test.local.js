@@ -30,6 +30,12 @@ describe('Addresses', async function() {
         let identities = await scrypta.returnIdentities()
         assert.notEqual(0, identities.count);
     })
+    it('Should create RSA keys for identity', async function(){
+        let address = await scrypta.createAddress(password, true)
+        await scrypta.createRSAKeys(address.pub, password)
+        let identity = await scrypta.returnIdentity(address.pub)
+        assert.notEqual(undefined, identity.rsa);
+    })
 });
 
 describe('Idanodes', async function() {
