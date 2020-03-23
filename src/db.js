@@ -51,6 +51,7 @@ module.exports = class ScryptaDB {
         return new Promise(async response => {
             if(db.isBrowser){
                 await db.loadBrowserDB()
+                console.log(db.data[collection].indexOf(doc))
                 if(db.data[collection].indexOf(doc) === -1){
                     db.data[collection].push(doc)
                     localStorage.setItem(collection, JSON.stringify(db.data[collection]))
@@ -58,7 +59,13 @@ module.exports = class ScryptaDB {
                 response(true)
             }else{
                 await db.loadNodeDB()
-                if(db.data[collection].indexOf(doc) === -1){
+                let found = false
+                for(let x in db.data[collection]){
+                    if(JSON.stringify(doc) === JSON.stringify(db.data[collection][x])){
+                        found = true
+                    }
+                }
+                if(!found){
                     db.data[collection].push(doc)
                     db.fs.writeFileSync(db.dir + '/' + collection + '.json', JSON.stringify(db.data[collection]))
                 }
