@@ -50,21 +50,27 @@ module.exports = class ScryptaCore {
         }
     }
 
-    post(endpoint, params){
+    post(endpoint, params, node = ''){
         const app = this
         return new Promise(async response => {
-            let node = await app.connectNode()
+            if(node === ''){
+                node = await app.connectNode()
+            }
             let res = await axios.post(node + endpoint, params).catch(err => { response(err)})
             response(res.data)
         })
     }
 
-    get(endpoint){
+    get(endpoint, node = ''){
         const app = this
         return new Promise(async response => {
-            let node = await app.connectNode()
-            let res = await axios.get(node + endpoint).catch(err => { response(err)})
-            response(res.data)
+            if(node === ''){
+                node = await app.connectNode()
+            }
+            let res = await axios.get(node + endpoint).catch(err => { response(err) })
+            if(res !== undefined){
+                response(res.data)
+            }
         })
     }
 
@@ -99,7 +105,7 @@ module.exports = class ScryptaCore {
                         // console.log("Can\'t connect to " + err.config.url.replace('/wallet/getinfo','') )
                     })
                 }catch(err){
-                    console.log(err)
+                    // console.log(err)
                 }
             }
         })
@@ -819,8 +825,8 @@ module.exports = class ScryptaCore {
             // console.log('Loaded identity ' + address)
             for(let x in nodes){
                 let node = nodes[x]
-                let check = await app.get('/wallet/getinfo')
-                if(check.blocks !== undefined){
+                let check = await app.checkNode(node)
+                if(check !== false){
                     // console.log('Bootstrap connection to ' + node)
                     global['nodes'][node] = require('socket.io-client')(node.replace('https','http') + ':' + this.portP2P, { reconnect: true })
                     global['nodes'][node].on('connect', function () {
