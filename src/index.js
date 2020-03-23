@@ -334,19 +334,19 @@ module.exports = class ScryptaCore {
     
     returnKey(address){
         const app = this
-        if(address.length === 34){
-            const db = new ScryptaDB(app.isBrowser)
-            return new Promise(async response => {
+        return new Promise(async response => {
+            if(address.length === 34){
+                const db = new ScryptaDB(app.isBrowser)
                 let doc = await db.get('wallet','address',address)
                 if(doc !== undefined){
                     response(doc.wallet)
                 }else{
                     response(false)
                 }
-            })
-        }else{
-            return address
-        }
+            }else{
+                response(address)
+            }
+        })
     }
 
      async readKey(password, key){
