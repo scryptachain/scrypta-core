@@ -300,7 +300,7 @@ module.exports = class ScryptaCore {
             let SID = localStorage.getItem('SID')
             if(SID !== null){
                 let SIDS = SID.split(':')
-                let check = db.get('wallet','address',SIDS[0])
+                let check = await db.get('wallet','address',SIDS[0])
                 if(!check){
                     await db.put('wallet',{
                         address: SIDS[0],
