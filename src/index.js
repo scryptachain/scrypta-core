@@ -967,6 +967,28 @@ module.exports = class ScryptaCore {
         })
     }
 
+    returnDefaultIdentity(){
+        const app = this
+        return new Promise(response => {
+            if(app.isBrowser){
+                if(localStorage.getItem('SID') !== null){
+                    response(localStorage.getItem('SID'))
+                }else{
+                    const db = new ScryptaDB(app.isBrowser)
+                    let wallet = db.get('wallet')
+                    if(wallet !== false && wallet[0] !== undefined){
+                        localStorage.setItem('SID', wallet[0].wallet)
+                        response(wallet)
+                    }else{
+                        response(false)
+                    }
+                }
+            }else{
+                response(false)
+            }
+        })
+    }
+
     fetchIdentities(address){
         return new Promise(async response => {
             const app = this
