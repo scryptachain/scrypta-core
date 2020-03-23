@@ -31,6 +31,7 @@ describe('Addresses', async function() {
         assert.notEqual(0, identities.count);
     })
     it('Should create RSA keys for identity', async function(){
+        this.timeout(15000)
         let address = await scrypta.createAddress(password, true)
         await scrypta.createRSAKeys(address.pub, password)
         let identity = await scrypta.returnIdentity(address.pub)

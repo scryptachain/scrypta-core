@@ -7,7 +7,7 @@ const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
-const { generateKeyPair } = require('crypto');
+const NodeRSA = require('node-rsa');
 
 const lyraInfo = {
     mainnet: {
@@ -920,26 +920,20 @@ module.exports = class ScryptaCore {
             if(stored.rsa === undefined){
                 let key = await app.readKey(password, wallet)
                 if(key !== false){
-                    generateKeyPair('rsa', {
-                        modulusLength: 4096,
-                        publicKeyEncoding: {
-                            type: 'spki',
-                            format: 'pem'
-                        },
-                        privateKeyEncoding: {
-                            type: 'pkcs8',
-                            format: 'pem',
-                            cipher: 'aes-256-cbc',
-                            passphrase: password
-                        }
-                        }, async (err, publicKey, privateKey) => {
-                            stored.rsa = {
-                                pub: publicKey,
-                                prv: privateKey
-                            }
-                            await db.update('wallet','address',stored.address,stored)
-                            response(true)
-                        });
+                    const key = new NodeRSA({b: 2048});
+                    let pub = key.exportKey('pkcs8-public-pem');
+                    let prv = key.exportKey('pkcs8-pem');
+                    
+                    const cipher = crypto.createCipher('aes-256-cbc', password);
+                    let prvhex = cipher.update(prv, 'utf8', 'hex');
+                    prvhex += cipher.final('hex')
+
+                    stored.rsa = {
+                        pub: pub,
+                        prv: prvhex
+                    }
+                    await db.update('wallet','address',stored.address,stored)
+                    response(true)
                 }else{
                     response(false)
                 }
