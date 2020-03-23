@@ -6,7 +6,7 @@ const secp256k1 = require('secp256k1')
 const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
-var PouchDB
+const ScryptaDB = require('./db')
 
 const lyraInfo = {
     mainnet: {
@@ -34,15 +34,10 @@ module.exports = class ScryptaCore {
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.testnet = false
         this.portP2P = 42226
+        this.isBrowser = isBrowser
         if(isBrowser){
-            PouchDB = require('pouchdb-browser')
-        }else{
-            PouchDB = require('pouchdb')
+            this.importBrowserSID()
         }
-        this.storage = new PouchDB('ScryptaCore')
-        this.txidCache = new PouchDB('ScryptaTXIDCache')
-        this.utxoCache = new PouchDB('ScryptaUTXOCache')
-        this.messages = new PouchDB('ScryptaP2PMessages')
         this.clearCache()
     }
 
@@ -112,61 +107,52 @@ module.exports = class ScryptaCore {
 
     //CACHE FUNCTIONS
     async clearCache(){
+        const app = this
         return new Promise(async response => {
-            await this.txidCache.destroy()
-            await this.utxoCache.destroy()
+            const db = new ScryptaDB(app.isBrowser)
+            await db.destroy('cache')
+            await db.put('cache', {"type": "txid", "data": []})
+            await db.put('cache', {"type": "utxo", "data": []})
             response(true)
         })
     }
 
     async returnTXIDCache(){
+        const app = this
         return new Promise(async response => {
-            this.txidCache.allDocs({
-                include_docs: true
-            }).then(function (result) {
-                let array = []
-                for(let x in result){
-                    array.push(result[x].txid)
-                }
-                response(array)
-            }).catch(function (err) {
-                response(false)
-            })
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            response(cache.txid)
         })
     }
 
     async pushTXIDtoCache(txid){
+        const app = this
         return new Promise(async response => {
-            await this.txidCache.put({
-                _id: txid,
-                txid: txid
-            })
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            cache.txid.push(txid)
+            await db.update('cache','type','txid', cache.txid)
             response(true)
         })
     }
 
     async returnUTXOCache(){
+        const app = this
         return new Promise(async response => {
-            this.utxoCache.allDocs({
-                include_docs: true
-            }).then(function (result) {
-                let array = []
-                for(let x in result){
-                    array.push(result[x].utxo)
-                }
-                response(array)
-            }).catch(function (err) {
-                response(false)
-            })
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            response(cache.utxo)
         })
     }
 
     async pushUTXOtoCache(utxo){
+        const app = this
         return new Promise(async response => {
-            await this.txidCache.put({
-                _id: utxo,
-                utxo: utxo
-            })
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            cache.utxo.push(utxo)
+            await db.update('cache','type','utxo', cache.utxo)
             response(true)
         })
     }
@@ -252,6 +238,8 @@ module.exports = class ScryptaCore {
     }
 
     async buildWallet(password, pub, wallet, saveKey){
+        const app = this
+        const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
 
             const cipher = crypto.createCipher('aes-256-cbc', password);
@@ -261,11 +249,9 @@ module.exports = class ScryptaCore {
             var walletstore = pub + ':' + wallethex;
             
             if(saveKey === true){
-                await this.storage.put({
-                    _id: pub,
+                await db.put('wallet',{
+                    address: pub,
                     wallet: walletstore
-                }).catch(err => {
-                    // console.log(err)
                 })
             }
 
@@ -300,6 +286,20 @@ module.exports = class ScryptaCore {
         })
     }
 
+    async importBrowserSID(){
+        const app = this
+        if(app.isBrowser){
+            let SID = localStorage.getItem('SID')
+            if(SID !== null){
+                let SIDS = SID.explore(':')
+                await db.put('wallet',{
+                    address: SIDS[0],
+                    wallet: SIDS[1]
+                })
+            }
+        }
+    }
+
 
     importPrivateKey(key, password){
         return new Promise(async response => {
@@ -322,13 +322,16 @@ module.exports = class ScryptaCore {
     }
     
     returnKey(address){
+        const app = this
         if(address.length === 34){
+            const db = new ScryptaDB(app.isBrowser)
             return new Promise(async response => {
-                this.storage.get(address).then(function (doc) {
+                let doc = await db.get('wallet','address',address)
+                if(doc !== undefined){
                     response(doc.wallet)
-                }).catch(function (err) {
+                }else{
                     response(false)
-                });
+                }
             })
         }else{
             return address
@@ -806,6 +809,7 @@ module.exports = class ScryptaCore {
     async connectP2P(key, password, callback){
         const app = this
         let nodes = await this.returnNodes()
+        const db = new ScryptaDB(app.isBrowser)
         key = await this.returnKey(key)
         let SIDS = key.split(':')
         let address = SIDS[0]
@@ -830,22 +834,19 @@ module.exports = class ScryptaCore {
                     let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
                     if(verified !== false && global['cache'].indexOf(data.signature) === -1){
                         global['cache'].push(data.signature)
-                        app.messages.get(data.signature).then(function (doc) {
-                            // MESSAGE RECEIVED YET
-                        }).catch(async function (err) {
-                            if(err.status === 404){
-                                await app.messages.put({
-                                    _id: data.signature,
-                                    message: data.message,
-                                    pubKey: data.pubKey,
-                                    address: data.address
-                                }).catch(err => {
-                                    // console.log(err)
-                                }).then(success => {
-                                    callback(data)
-                                })
-                            }
-                        });
+                        let check = await db.get('messages','signature',data.signature)
+                        if(!check){
+                            await db.put('messages',{
+                                _id: data.signature,
+                                message: data.message,
+                                pubKey: data.pubKey,
+                                address: data.address
+                            }).catch(err => {
+                                // console.log(err)
+                            }).then(success => {
+                                callback(data)
+                            })
+                        }
                     }
                 })
             }

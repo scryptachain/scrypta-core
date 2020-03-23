@@ -6,10 +6,12 @@ let scrypta = new ScryptaCore
 let password = '123456'
 scrypta.createAddress(password, true).then(async res => {
     // SHOULD RETURN THE WALLETSTORE
+    console.log('CREATED NEW ADDRESS ' + res.pub)
     let walletstore = await scrypta.returnKey(res.pub)
     console.log(walletstore)
 
     // SHOULD GET AN IDANODE
+    console.log('SHOULD GET FIRST IDANODE')
     let getinfo = await scrypta.get('/wallet/getinfo')
     console.log(JSON.stringify(getinfo))
 
@@ -18,6 +20,7 @@ scrypta.createAddress(password, true).then(async res => {
     console.log(JSON.stringify(init))
 
     // SHOULD CONNECT TO ALL IDANODES
+    console.log('SHOULD CONNECT TO ALL IDANODES WITH ADDRESS ' + res.pub)
     scrypta.connectP2P(res.pub, password, function(received){
         console.log('Received ' + JSON.stringify(received))
     })
