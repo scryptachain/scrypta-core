@@ -1,6 +1,6 @@
 {
   "name": "@scrypta/core",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
