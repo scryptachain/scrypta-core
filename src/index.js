@@ -888,18 +888,11 @@ module.exports = class ScryptaCore {
 
     // IDENTITIES FUNCTIONS
     returnIdentities(){
+        const app = this
         return new Promise(response => {
-            this.storage.allDocs({
-                include_docs: true
-            }).then(function (result) {
-                let array = []
-                for(let x in result.rows){
-                    array.push(result.rows[x].doc.wallet)
-                }
-                response(array)
-            }).catch(function (err) {
-                response(false)
-            })
+            const db = new ScryptaDB(app.isBrowser)
+            let wallet = db.get('wallet')
+            response(wallet)
         })
     }
     
