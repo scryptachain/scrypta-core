@@ -819,37 +819,40 @@ module.exports = class ScryptaCore {
             // console.log('Loaded identity ' + address)
             for(let x in nodes){
                 let node = nodes[x]
-                // console.log('Bootstrap connection to ' + node)
-                global['nodes'][node] = require('socket.io-client')(node.replace('https','http') + ':' + this.portP2P, { reconnect: true })
-                global['nodes'][node].on('connect', function () {
-                    // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
-                    global['connected'][node] = true
-                })
-                global['nodes'][node].on('disconnect', function () {
-                    // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
-                    global['connected'][node] = false
-                })
+                let check = await app.get('/wallet/getinfo')
+                if(check.blocks !== undefined){
+                    // console.log('Bootstrap connection to ' + node)
+                    global['nodes'][node] = require('socket.io-client')(node.replace('https','http') + ':' + this.portP2P, { reconnect: true })
+                    global['nodes'][node].on('connect', function () {
+                        // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                        global['connected'][node] = true
+                    })
+                    global['nodes'][node].on('disconnect', function () {
+                        // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
+                        global['connected'][node] = false
+                    })
 
-                //PROTOCOLS
-                global['nodes'][node].on('message', async function (data) {
-                    let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
-                    if(verified !== false && global['cache'].indexOf(data.signature) === -1){
-                        global['cache'].push(data.signature)
-                        let check = await db.get('messages','signature',data.signature)
-                        if(!check){
-                            await db.put('messages',{
-                                signature: data.signature,
-                                message: data.message,
-                                pubKey: data.pubKey,
-                                address: data.address
-                            }).catch(err => {
-                                // console.log(err)
-                            }).then(success => {
-                                callback(data)
-                            })
+                    //PROTOCOLS
+                    global['nodes'][node].on('message', async function (data) {
+                        let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
+                        if(verified !== false && global['cache'].indexOf(data.signature) === -1){
+                            global['cache'].push(data.signature)
+                            let check = await db.get('messages','signature',data.signature)
+                            if(!check){
+                                await db.put('messages',{
+                                    signature: data.signature,
+                                    message: data.message,
+                                    pubKey: data.pubKey,
+                                    address: data.address
+                                }).catch(err => {
+                                    // console.log(err)
+                                }).then(success => {
+                                    callback(data)
+                                })
+                            }
                         }
-                    }
-                })
+                    })
+                }
             }
         }
     }
