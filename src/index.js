@@ -304,7 +304,7 @@ module.exports = class ScryptaCore {
                 if (!check) {
                     await db.put('wallet', {
                         address: SIDS[0],
-                        wallet: SIDS[1]
+                        wallet: SIDS[0] + ':' + SIDS[1]
                     })
                 }
             }
@@ -361,7 +361,7 @@ module.exports = class ScryptaCore {
                     var decrypted = JSON.parse(dec);
                     return Promise.resolve(decrypted);
                 } catch (ex) {
-                    //console.log('WRONG PASSWORD')
+                    // console.log('WRONG PASSWORD')
                     return Promise.resolve(false);
                 }
             }
