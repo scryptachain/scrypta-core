@@ -30,8 +30,8 @@ module.exports = class ScryptaDB {
         return new Promise(response => {
             db.dir = './db';
             const collections = ["wallet","cache","messages"]
-            if (!db.fs.existsSync(db.dir)){
-                db.fs.mkdb.dirSync(db.dir)
+            if (db.fs.existsSync(db.dir) === false){
+                db.fs.mkdirSync(db.dir)
             }
             for(let x in collections){
                 if (db.fs.existsSync(db.dir + '/' + collections[x] + '.json')) {
