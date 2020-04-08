@@ -10,7 +10,8 @@
   "scripts": {
     "test:local": "mocha test/test.local.js",
     "test:npm": "mocha test/test.npm.js",
-    "test:static": "node test/test.static.js"
+    "test:static": "node test/test.static.js",
+    "pub": "npm publish --access public"
   },
   "keywords": [
     "blockchain",
