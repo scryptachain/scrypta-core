@@ -1,6 +1,6 @@
 {
   "name": "@scrypta/core",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
@@ -33,7 +33,7 @@
     "binstring": "^0.2.1",
     "browser-cookies": "^1.2.0",
     "clean-webpack-plugin": "^1.0.0",
-    "coinkey": "^3.0.0",
+    "@scrypta/coinkey": "^3.0.1",
     "create-hash": "^1.2.0",
     "crypto-hashing": "^1.0.0",
     "crypto-js": "^3.1.9-1",

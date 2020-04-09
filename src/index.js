@@ -1,5 +1,5 @@
 const _ = require('lodash')
-const CoinKey = require('coinkey')
+const CoinKey = require('@scrypta/coinkey')
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js')
 const secp256k1 = require('secp256k1')
