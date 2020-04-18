@@ -129,7 +129,13 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
             let cache = await db.get('cache')
-            response(cache.txid)
+            let res = []
+            for(let i in cache){
+                if(cache[i].type === 'txid'){
+                    res = cache[i].data
+                }
+            }
+            response(res)
         })
     }
 
@@ -137,9 +143,9 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            cache.txid.push(txid)
-            await db.update('cache', 'type', 'txid', cache.txid)
+            let cache = await this.returnTXIDCache()
+            cache.push(txid)
+            await db.update('cache', 'type', 'txid', cache)
             response(true)
         })
     }
@@ -149,7 +155,13 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
             let cache = await db.get('cache')
-            response(cache.utxo)
+            let res = []
+            for(let i in cache){
+                if(cache[i].type === 'txid'){
+                    res = cache[i].data
+                }
+            }
+            response(res)
         })
     }
 
@@ -157,9 +169,9 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            cache.utxo.push(utxo)
-            await db.update('cache', 'type', 'utxo', cache.utxo)
+            let cache = await this.returnTXIDCache()
+            cache.push(utxo)
+            await db.update('cache', 'type', 'utxo', cache)
             response(true)
         })
     }
@@ -420,14 +432,12 @@ module.exports = class ScryptaCore {
                 var dec = decipher.update(SIDS[1], 'hex', 'utf8');
                 dec += decipher.final('utf8');
                 var decrypted = JSON.parse(dec);
-
                 var trx = Trx.transaction();
                 var from = SIDS[0]
                 var unspent = []
                 var inputs = []
                 var cache = await this.returnUTXOCache()
-                //console.log('CACHE', cache)
-                if (cache.length > 0) {
+                if (cache !== undefined && cache.length > 0) {
                     for (var x = 0; x < cache.length; x++) {
                         unspent.push(cache[x])
                     }
@@ -436,7 +446,7 @@ module.exports = class ScryptaCore {
                 for (var x = 0; x < listunspent.length; x++) {
                     unspent.push(listunspent[x])
                 }
-                //console.log('UNSPENT', unspent)
+                // console.log('UNSPENT', unspent, unspent.length)
                 if (unspent.length > 0) {
                     var inputamount = 0;
                     var amountneed = amount + fees;
@@ -482,7 +492,7 @@ module.exports = class ScryptaCore {
                                 for (let i in inputs) {
                                     await this.pushTXIDtoCache(inputs[i])
                                 }
-                                //console.log("TX SENT: " + txid)
+                                // console.log("TX SENT: " + txid)
                                 return Promise.resolve(txid)
                             }
                         }
@@ -517,9 +527,7 @@ module.exports = class ScryptaCore {
                     while (txid !== null && txid !== undefined && txid.length !== 64) {
                         var fees = 0.001 + (i / 1000)
                         rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
-                        //console.log(rawtransaction)
                         txid = await this.sendRawTransaction(rawtransaction.signed)
-                        //console.log(txid)
                         if (txid !== null && txid !== false && txid.length === 64) {
                             for (let i in rawtransaction.inputs) {
                                 await this.pushTXIDtoCache(rawtransaction.inputs[i])
@@ -956,7 +964,7 @@ module.exports = class ScryptaCore {
             if (app.isBrowser) {
                 const db = new ScryptaDB(app.isBrowser)
                 let wallet = db.get('wallet', 'address', address)
-                console.log(wallet)
+                // console.log(wallet)
                 if (wallet !== false) {
                     localStorage.setItem('SID', wallet.wallet)
                     response(true)
