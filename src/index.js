@@ -91,22 +91,21 @@ module.exports = class ScryptaCore {
 
     async connectNode() {
         return new Promise(async response => {
-            var checknodes = this.returnNodes()
+            var checknodes = this.shuffle(this.returnNodes())
             var connected = false
-            for (var i = 0; i < checknodes.length; i++) {
-                try {
-                    axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
+            while(connected === false){
+                for (var i = 0; i < checknodes.length; i++) {
+                    try {
+                        let check = await axios.get(checknodes[i] + '/wallet/getinfo')
                         if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0) {
                             connected = true
                             if (check.config.url !== undefined) {
                                 response(check.config.url.replace('/wallet/getinfo', ''))
                             }
                         }
-                    }).catch(err => {
-                        // console.log("Can\'t connect to " + err.config.url.replace('/wallet/getinfo','') )
-                    })
-                } catch (err) {
-                    // console.log(err)
+                    } catch (err) {
+                        // console.log(err)
+                    }
                 }
             }
         })
@@ -1011,5 +1010,21 @@ module.exports = class ScryptaCore {
                 response(false)
             }
         })
+    }
+
+    shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+        
+        while (0 !== currentIndex) {
+        
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+        
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+        
+        return array;
     }
 }
