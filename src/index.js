@@ -96,7 +96,7 @@ module.exports = class ScryptaCore {
             for (var i = 0; i < checknodes.length; i++) {
                 try {
                     axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
-                        if (check.data.blocks !== undefined && connected === false) {
+                        if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0) {
                             connected = true
                             if (check.config.url !== undefined) {
                                 response(check.config.url.replace('/wallet/getinfo', ''))
@@ -130,8 +130,8 @@ module.exports = class ScryptaCore {
             const db = new ScryptaDB(app.isBrowser)
             let cache = await db.get('cache')
             let res = []
-            for(let i in cache){
-                if(cache[i].type === 'txid'){
+            for (let i in cache) {
+                if (cache[i].type === 'txid') {
                     res = cache[i].data
                 }
             }
@@ -156,8 +156,8 @@ module.exports = class ScryptaCore {
             const db = new ScryptaDB(app.isBrowser)
             let cache = await db.get('cache')
             let res = []
-            for(let i in cache){
-                if(cache[i].type === 'txid'){
+            for (let i in cache) {
+                if (cache[i].type === 'txid') {
                     res = cache[i].data
                 }
             }
