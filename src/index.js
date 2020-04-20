@@ -91,23 +91,40 @@ module.exports = class ScryptaCore {
 
     async connectNode() {
         return new Promise(async response => {
-            var checknodes = this.shuffle(this.returnNodes())
             var connected = false
             while(connected === false){
-                for (var i = 0; i < checknodes.length; i++) {
-                    try {
-                        let check = await axios.get(checknodes[i] + '/wallet/getinfo')
+                let node = await this.returnFirstNode()
+                if(node.length !== false){
+                    connected = true
+                    response(node)
+                }
+            }
+        })
+    }
+
+    async returnFirstNode(){
+        return new Promise(response => {
+            var checknodes = this.shuffle(this.returnNodes())
+            let connected = false
+            for (var i = 0; i < checknodes.length; i++) {
+                try {
+                    axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
                         if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0) {
                             connected = true
                             if (check.config.url !== undefined) {
                                 response(check.config.url.replace('/wallet/getinfo', ''))
                             }
                         }
-                    } catch (err) {
-                        // console.log(err)
-                    }
+                    })
+                } catch (err) {
+                    // console.log(err)
                 }
             }
+            setTimeout(function(){
+                if(connected === false){
+                    response(false)
+                }
+            }, 300)
         })
     }
 
