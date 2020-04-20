@@ -124,7 +124,7 @@ module.exports = class ScryptaCore {
                 if(connected === false){
                     response(false)
                 }
-            }, 300)
+            }, 1500)
         })
     }
 
