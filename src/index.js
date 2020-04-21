@@ -94,7 +94,7 @@ module.exports = class ScryptaCore {
             var connected = false
             while(connected === false){
                 let node = await this.returnFirstNode()
-                if(node.length !== false){
+                if(node !== false){
                     connected = true
                     response(node)
                 }
