@@ -8,7 +8,16 @@ const axios = require('axios')
 const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa');
+import { create, all } from 'mathjs'
 
+const mathJSConfig = {
+    epsilon: 1e-12,
+    matrix: 'Matrix',
+    number: 'number',
+    precision: 64,
+    predictable: false,
+    randomSeed: null
+}
 const lyraInfo = {
     mainnet: {
         private: 0xae,
@@ -35,7 +44,11 @@ module.exports = class ScryptaCore {
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.testnet = false
         this.portP2P = 42226
+        this.sidechain = ''
+        this.idanode = ''
         this.isBrowser = isBrowser
+        this.math = create(all, config)
+
         if (isBrowser) {
             this.importBrowserSID()
         }
@@ -90,19 +103,40 @@ module.exports = class ScryptaCore {
     }
 
     async connectNode() {
+        const app = this
         return new Promise(async response => {
-            var connected = false
-            while(connected === false){
-                let node = await this.returnFirstNode()
-                if(node !== false){
-                    connected = true
-                    response(node)
+            if(app.idanode === ''){
+                let connected = false
+                while(connected === false){
+                    let node = await this.returnFirstNode()
+                    if(node !== false){
+                        connected = true
+                        app.idanode = node
+                        response(node)
+                    }
+                }
+            }else{
+                let check = await app.checkNode(app.idanode)
+                if(check !== false && check.data.toindex === 0){
+                    response(app.idanode)
+                }else{
+                    app.idanode = ''
+                    let connected = false
+                    while(connected === false){
+                        let node = await this.returnFirstNode()
+                        if(node !== false){
+                            connected = true
+                            app.idanode = node
+                            response(node)
+                        }
+                    }
                 }
             }
         })
     }
 
     async returnFirstNode(){
+        const app = this
         return new Promise(response => {
             var checknodes = this.shuffle(this.returnNodes())
             let connected = false
@@ -577,6 +611,204 @@ module.exports = class ScryptaCore {
         }
     }
 
+    // PLANUM FUNCTIONS
+    usePlanum(sidechain){
+        const app = this
+        app.sidechain = sidechain
+    }
+
+    async listPlanumUnspent(address){
+        const app = this
+
+        if(app.sidechain !== ''){
+            let unspent = await app.post('/sidechain/listunspent',{sidechain_address: app.sidechain, dapp_address: address})
+            if(unspent.unspent !== undefined){
+                return unspent.unspent
+            }else{
+                return false
+            }
+        }else{
+            return false
+        }
+    }
+
+    /*async sendPlanumAsset(key, password, to, amount, memo = ''){
+        const app = this
+        let wallet = await this.returnKey(key)
+        if (wallet !== false) {
+            if (password !== '' && to !== '') {
+                var SIDS = wallet.split(':');
+                try {
+                    var decipher = crypto.createDecipher('aes-256-cbc', password);
+                    var dec = decipher.update(SIDS[1], 'hex', 'utf8');
+                    dec += decipher.final('utf8');
+
+                    const address = SIDS[0]
+                    var sxid = ''
+                    let unspent = await app.listPlanumUnspent(address)
+                    // TODO: VERIFY IDANODE CODE
+                    if(unspent !== false && unspent.length > 0){
+                        // TODO: BUILD TRANSACTION METADATA
+                        
+                        let inputs = []
+                        let outputs = {}
+                        let amountinput = 0
+                        let amount = math.round(fields.amount, decimals)
+                        let usedtx = []
+                        for (let i in unspent) {
+                        if (amountinput < amount) {
+                            delete unspent[i]._id
+                            delete unspent[i].sidechain
+                            delete unspent[i].address
+                            let checkinput = await db.collection('sc_transactions').find({ sxid: unspent[i].sxid }).limit(1).toArray()
+                            if (checkinput[0] !== undefined && checkinput[0].transaction.outputs[fields.from] !== undefined && checkinput[0].transaction.outputs[fields.from] === unspent[i].amount) {
+                            if (global['sxidcache'].indexOf(unspent[i].sxid) === -1) {
+                                delete unspent[i].block
+                                delete unspent[i].redeemblock
+                                delete unspent[i].redeemed
+                                let validateinput = await scwallet.validateinput(unspent[i].sxid, unspent[i].vout, fields.sidechain_address, fields.from)
+                                let isDoubleSpended = await scwallet.checkdoublespending(unspent[i].sxid, unspent[i].vout, fields.sidechain_address, "")
+                                if(validateinput === true && isDoubleSpended === false){
+                                inputs.push(unspent[i])
+                                usedtx.push(unspent[i].sxid)
+                                let toadd = math.round(unspent[i].amount, decimals)
+                                amountinput = math.sum(amountinput, toadd)
+                                amountinput = math.round(amountinput, decimals)
+                                }else{
+                                await db.collection('sc_unspent').deleteOne({"sxid": unspent[i].sxid, "vout": unspent[i].vout})
+                                }
+                            }
+                            }
+                        }
+                        }
+                        let totaloutputs = 0
+                        amountinput = math.round(amountinput, decimals)
+                        amount = math.round(amount, decimals)
+                        if (amountinput >= fields.amount) {
+                        
+                        if(fields.to === check_sidechain[0].address && check_sidechain[0].data.burnable === false){
+                            
+                            res.send({
+                            error: true,
+                            description: "Can\'t burn asset.",
+                            status: 422
+                            })
+
+                        }else{
+
+                            outputs[fields.to] = amount
+                            totaloutputs = math.sum(totaloutputs, amount)
+
+                            let change = math.subtract(amountinput, amount)
+                            change = math.round(change, check_sidechain[0].data.genesis.decimals)
+                            if(fields.to !== fields.from){
+                            if (change > 0 && fields.change === undefined) {
+                                outputs[fields.from] = change
+                                totaloutputs = math.sum(totaloutputs, change)
+                            } else if (change > 0 && fields.change !== undefined){
+                                // CHECK IF CHANGE ADDRESS IS VALID
+                                let checkchange = await wallet.request('validateaddress', [fields.change])
+                                if (checkchange['result'].isvalid === true) {
+                                outputs[fields.change] = change
+                                totaloutputs = math.sum(totaloutputs, change)
+                                }else{
+                                // IF NOT, SEND TO MAIN ADDRESS
+                                outputs[fields.from] = change
+                                totaloutputs = math.sum(totaloutputs, change)
+                                }
+                            }
+                            }else{
+                            if (change > 0) {
+                                outputs[fields.from] = math.sum(change, amount)
+                                outputs[fields.from] = math.round(outputs[fields.from], check_sidechain[0].data.genesis.decimals)
+                                totaloutputs = math.sum(totaloutputs, change)
+                            }
+                            }
+
+                            totaloutputs = math.round(totaloutputs, check_sidechain[0].data.genesis.decimals)
+
+                            if (inputs.length > 0 && totaloutputs > 0) {
+                            let transaction = {}
+                            transaction["sidechain"] = fields.sidechain_address
+                            transaction["inputs"] = inputs
+                            transaction["outputs"] = outputs
+                            let memo = ''
+                            if(fields.memo !== undefined){
+                                memo = fields.memo
+                            }
+                            transaction["memo"] = memo
+                            transaction["time"] = new Date().getTime()
+
+                            let signtx = await app.signmessage(fields.private_key, JSON.stringify(transaction))
+
+                            let tx = {
+                                transaction: transaction,
+                                signature: signtx.signature,
+                                pubkey: fields.pubkey,
+                                sxid: signtx.id
+                            }
+
+                            let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
+
+                            if (write !== false) {
+                                res.send(write)
+                                for (let x in usedtx) {
+                                global['sxidcache'].push(usedtx[x])
+                                }
+                                let vout = 0
+                                for (let x in outputs) {
+                                let unspent = {
+                                    sxid: tx.sxid,
+                                    vout: vout,
+                                    address: x,
+                                    amount: outputs[x],
+                                    sidechain: tx.transaction['sidechain']
+                                }
+                                global['usxocache'].push(unspent)
+                                vout++
+                                }
+                                
+                            } else {
+                                res.send({
+                                error: true,
+                                description: "Error creating transaction",
+                                status: 422
+                                })
+                            }
+                            } else {
+                            res.send({
+                                error: true,
+                                description: "Can\'t send transaction",
+                                status: 422
+                            })
+                            }
+                        }
+                        } else {
+                        res.send({
+                            error: true,
+                            description: "Insufficient balance",
+                            status: 422
+                        })
+                        }
+                        if(written.txs.length >= 1){
+                            return Promise.resolve(sxid)
+                        }else{
+                            return Promise.resolve(false)
+                        }
+                    }else{
+                        return Promise.resolve(false)
+                    }
+                } catch (e) {
+                    return Promise.resolve(false)
+                }
+            } else {
+                return false
+            }
+        } else {
+            return false
+        }
+    }*/
+
     //PROGRESSIVE DATA MANAGEMENT
     async write(key, password, metadata, collection = '', refID = '', protocol = '', uuid = '') {
         if (password !== '' && metadata !== '') {
@@ -912,7 +1144,6 @@ module.exports = class ScryptaCore {
             })
         }
     }
-
 
     // IDENTITIES FUNCTIONS
     returnIdentities() {

@@ -52,6 +52,7 @@ describe('Addresses', async function() {
 
 describe('Idanodes', async function() {
     it('Should GET first available IdaNode', function(){
+        this.timeout(35000)
         return new Promise(async response => {
             let getinfo = await scrypta.get('/wallet/getinfo')
             if(getinfo.blocks !== undefined){
@@ -61,12 +62,25 @@ describe('Idanodes', async function() {
     })
 
     it('Should POST first available IdaNode', async function(){
+        this.timeout(35000)
         let Bob = await scrypta.createAddress(password, true)
         let Alice = await scrypta.createAddress(password, true)
         let trustlink = await scrypta.post('/trustlink/init', { addresses: Bob.key + ',' + Alice.key, airdrop: false})
         assert.equal(34, trustlink.data.address.length);
     })
 });
+
+describe('Planum', async function() {
+    it('Should return a list of unspent', function(){
+        this.timeout(10000)
+        return new Promise(async response => {
+            scrypta.usePlanum('6ShzCp8oXAqVSZdrkNMSj13ghobwZZRzGm')
+            let unspent = await scrypta.listPlanumUnspent('LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2')
+            console.log(unspent)
+            assert.notEqual(false, unspent);
+        })
+    })
+})
 
 describe('P2P Network', async function() {
     it('Should connect to p2p network and send a message', function(){
