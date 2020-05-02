@@ -8,16 +8,7 @@ const axios = require('axios')
 const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa');
-const { create, all } = require('mathjs')
-
-const mathJSConfig = {
-    epsilon: 1e-12,
-    matrix: 'Matrix',
-    number: 'number',
-    precision: 64,
-    predictable: false,
-    randomSeed: null
-}
+const { sum, round, subtract } = require('mathjs')
 
 const lyraInfo = {
     mainnet: {
@@ -48,7 +39,10 @@ module.exports = class ScryptaCore {
         this.sidechain = ''
         this.idanode = ''
         this.isBrowser = isBrowser
-        this.math = create(all, mathJSConfig)
+        this.math = {}
+        this.math.sum = sum
+        this.math.round = round
+        this.math.subtract = subtract
 
         if (isBrowser) {
             this.importBrowserSID()
