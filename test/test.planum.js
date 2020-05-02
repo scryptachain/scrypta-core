@@ -1,6 +1,6 @@
 let ScryptaCore = require('../src/index.js')
 let scrypta = new ScryptaCore
-scrypta.mainnetIdaNodes = ['http://localhost:3001']
+// scrypta.mainnetIdaNodes = ['http://localhost:3001']
 
 async function send(amount = 0.001){
     return new Promise(async response => {
@@ -22,9 +22,11 @@ async function runtest(){
     console.log('SENDING ' + amount)
     await send(amount)
     i++
-    //runtest()
+    runtest()
 }
-
+runtest()
+/*
 setInterval(function(){
     runtest()
 },2000)
+*/
