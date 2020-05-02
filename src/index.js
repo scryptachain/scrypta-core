@@ -168,11 +168,10 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            await db.destroy('cache')
-            await db.put('cache', { "type": "txid", "data": [] })
-            await db.put('cache', { "type": "utxo", "data": [] })
-            await db.put('cache', { "type": "sxid", "data": [] })
-            await db.put('cache', { "type": "usxo", "data": [] })
+            await db.destroy('sxidcache')
+            await db.destroy('usxocache')
+            await db.destroy('txidcache')
+            await db.destroy('utxocache')
             response(true)
         })
     }
@@ -181,14 +180,8 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            let res = []
-            for (let i in cache) {
-                if (cache[i].type === 'txid') {
-                    res = cache[i].data
-                }
-            }
-            response(res)
+            let cache = await db.get('txidcache')
+            response(cache)
         })
     }
 
@@ -196,9 +189,7 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await this.returnTXIDCache()
-            cache.push(txid)
-            await db.update('cache', 'type', 'txid', cache)
+            await db.put('txidcache', txid)
             response(true)
         })
     }
@@ -207,14 +198,8 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            let res = []
-            for (let i in cache) {
-                if (cache[i].type === 'txid') {
-                    res = cache[i].data
-                }
-            }
-            response(res)
+            let cache = await db.get('utxocache')
+            response(cache)
         })
     }
 
@@ -222,9 +207,7 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await this.returnTXIDCache()
-            cache.push(utxo)
-            await db.update('cache', 'type', 'utxo', cache)
+            await db.put('utxocache', utxo)
             response(true)
         })
     }
@@ -233,14 +216,8 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            let res = []
-            for (let i in cache) {
-                if (cache[i].type === 'sxid') {
-                    res = cache[i].data
-                }
-            }
-            response(res)
+            let cache = await db.get('sxidcache')
+            response(cache)
         })
     }
     
@@ -248,9 +225,7 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await this.returnSXIDCache()
-            cache.push(sxid)
-            await db.update('cache', 'type', 'sxid', cache)
+            await db.put('sxidcache', sxid)
             response(true)
         })
     }
@@ -259,14 +234,8 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await db.get('cache')
-            let res = []
-            for (let i in cache) {
-                if (cache[i].type === 'sxid') {
-                    res = cache[i].data
-                }
-            }
-            response(res)
+            let cache = await db.get('usxocache')
+            response(cache)
         })
     }
     
@@ -274,11 +243,14 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            let cache = await this.returnSXIDCache()
-            cache.push(usxo)
-            await db.update('cache', 'type', 'usxo', cache)
+            await db.put('usxocache', usxo)
             response(true)
         })
+    }
+
+    // UTILITIES FUNCTION
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     //CRYPT AND ENCRYPT FUNCTIONS
@@ -819,33 +791,48 @@ module.exports = class ScryptaCore {
                                         pubkey: decrypted.key
                                     }
                                 )
-                                if(validatetransaction.errors === undefined && validatetransaction.valid === true){
-                                    let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
-                                    if (written !== false) {
-                                        for (let x in usedtx) {
-                                            app.pushSXIDtoCache(usedtx[x])
-                                        }
-                                        let vout = 0
-                                        for (let x in outputs) {
-                                            let unspent = {
-                                                sxid: tx.sxid,
-                                                vout: vout,
-                                                address: x,
-                                                amount: outputs[x],
-                                                sidechain: tx.transaction['sidechain']
-                                            }
-                                            app.pushUSXOtoCache(unspent)
-                                            vout++
-                                        }
 
-                                        if (written.txs.length >= 1) {
-                                            return Promise.resolve(tx.sxid)
-                                        } else {
-                                            return Promise.resolve(false)
+                                if(validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined){
+                                    let sent = false
+                                    let txs = []
+                                    let retry = 0
+                                    while(sent === false){
+                                        let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
+                                        if (written.txs.length >= 1 && written.txs[0] !== null) {
+                                            for (let x in usedtx) {
+                                                await app.pushSXIDtoCache(usedtx[x])
+                                            }
+                                            let vout = 0
+                                            for (let x in outputs) {
+                                                let unspent = {
+                                                    sxid: tx.sxid,
+                                                    vout: vout,
+                                                    address: x,
+                                                    amount: outputs[x],
+                                                    sidechain: tx.transaction['sidechain']
+                                                }
+                                                if(unspent.address === address){
+                                                    await app.pushUSXOtoCache(unspent)
+                                                }
+                                                vout++
+                                            }
+                                            sent = true
+                                            txs = written.txs
+                                        }else{
+                                            retry++
+                                            await app.sleep(2000)
                                         }
-                                    } else {
+                                        if(retry > 10){
+                                            sent = true
+                                        }
+                                    }
+                                    if(txs.length >= 1){
+                                        return Promise.resolve(tx.sxid)
+                                    }else{
                                         return Promise.resolve(false)
                                     }
+                                }else{
+                                    return Promise.resolve(false)
                                 }
                                 
                             } else {
