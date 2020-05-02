@@ -1,6 +1,6 @@
 let ScryptaCore = require('../src/index.js')
 let scrypta = new ScryptaCore
-// scrypta.mainnetIdaNodes = ['http://localhost:3001'] -> OVERRIDE IDANODES
+scrypta.mainnetIdaNodes = ['http://localhost:3001'] //OVVERIDE IDANODES
 
 // SHOULD CREATE ADDRESS
 let password = '123456'
