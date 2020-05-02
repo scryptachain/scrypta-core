@@ -18,6 +18,7 @@ const mathJSConfig = {
     predictable: false,
     randomSeed: null
 }
+
 const lyraInfo = {
     mainnet: {
         private: 0xae,
@@ -47,7 +48,7 @@ module.exports = class ScryptaCore {
         this.sidechain = ''
         this.idanode = ''
         this.isBrowser = isBrowser
-        this.math = create(all, config)
+        this.math = create(all, mathJSConfig)
 
         if (isBrowser) {
             this.importBrowserSID()
@@ -105,26 +106,26 @@ module.exports = class ScryptaCore {
     async connectNode() {
         const app = this
         return new Promise(async response => {
-            if(app.idanode === ''){
+            if (app.idanode === '') {
                 let connected = false
-                while(connected === false){
+                while (connected === false) {
                     let node = await this.returnFirstNode()
-                    if(node !== false){
+                    if (node !== false) {
                         connected = true
                         app.idanode = node
                         response(node)
                     }
                 }
-            }else{
+            } else {
                 let check = await app.checkNode(app.idanode)
-                if(check !== false && check.data.toindex === 0){
+                if (check !== false && check.data.toindex === 0) {
                     response(app.idanode)
-                }else{
+                } else {
                     app.idanode = ''
                     let connected = false
-                    while(connected === false){
+                    while (connected === false) {
                         let node = await this.returnFirstNode()
-                        if(node !== false){
+                        if (node !== false) {
                             connected = true
                             app.idanode = node
                             response(node)
@@ -135,7 +136,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async returnFirstNode(){
+    async returnFirstNode() {
         const app = this
         return new Promise(response => {
             var checknodes = this.shuffle(this.returnNodes())
@@ -154,8 +155,8 @@ module.exports = class ScryptaCore {
                     // console.log(err)
                 }
             }
-            setTimeout(function(){
-                if(connected === false){
+            setTimeout(function () {
+                if (connected === false) {
                     response(false)
                 }
             }, 1500)
@@ -170,6 +171,8 @@ module.exports = class ScryptaCore {
             await db.destroy('cache')
             await db.put('cache', { "type": "txid", "data": [] })
             await db.put('cache', { "type": "utxo", "data": [] })
+            await db.put('cache', { "type": "sxid", "data": [] })
+            await db.put('cache', { "type": "usxo", "data": [] })
             response(true)
         })
     }
@@ -222,6 +225,58 @@ module.exports = class ScryptaCore {
             let cache = await this.returnTXIDCache()
             cache.push(utxo)
             await db.update('cache', 'type', 'utxo', cache)
+            response(true)
+        })
+    }
+
+    async returnSXIDCache() {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            let res = []
+            for (let i in cache) {
+                if (cache[i].type === 'sxid') {
+                    res = cache[i].data
+                }
+            }
+            response(res)
+        })
+    }
+    
+    async pushSXIDtoCache(sxid) {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await this.returnSXIDCache()
+            cache.push(sxid)
+            await db.update('cache', 'type', 'sxid', cache)
+            response(true)
+        })
+    }
+    
+    async returnUSXOCache() {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await db.get('cache')
+            let res = []
+            for (let i in cache) {
+                if (cache[i].type === 'sxid') {
+                    res = cache[i].data
+                }
+            }
+            response(res)
+        })
+    }
+    
+    async pushUSXOtoCache(usxo) {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let cache = await this.returnSXIDCache()
+            cache.push(usxo)
+            await db.update('cache', 'type', 'usxo', cache)
             response(true)
         })
     }
@@ -612,27 +667,37 @@ module.exports = class ScryptaCore {
     }
 
     // PLANUM FUNCTIONS
-    usePlanum(sidechain){
+    usePlanum(sidechain) {
         const app = this
         app.sidechain = sidechain
     }
 
-    async listPlanumUnspent(address){
+    async listPlanumUnspent(address) {
         const app = this
+        let unspent = []
 
-        if(app.sidechain !== ''){
-            let unspent = await app.post('/sidechain/listunspent',{sidechain_address: app.sidechain, dapp_address: address})
-            if(unspent.unspent !== undefined){
-                return unspent.unspent
-            }else{
+        // PUSHING LOCAL CACHE
+        var cache = await this.returnUSXOCache()
+        if (cache !== undefined && cache.length > 0) {
+            for (var x = 0; x < cache.length; x++) {
+                unspent.push(cache[x])
+            }
+        }
+        
+        if (app.sidechain !== '') {
+            let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
+            if (unspentnode.unspent !== undefined) {
+                unspent.push(unspentnode)
+                return unspent
+            } else {
                 return false
             }
-        }else{
+        } else {
             return false
         }
     }
 
-    /*async sendPlanumAsset(key, password, to, amount, memo = ''){
+    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '') {
         const app = this
         let wallet = await this.returnKey(key)
         if (wallet !== false) {
@@ -642,160 +707,141 @@ module.exports = class ScryptaCore {
                     var decipher = crypto.createDecipher('aes-256-cbc', password);
                     var dec = decipher.update(SIDS[1], 'hex', 'utf8');
                     dec += decipher.final('utf8');
+                    var decrypted = JSON.parse(dec);
 
                     const address = SIDS[0]
                     var sxid = ''
                     let unspent = await app.listPlanumUnspent(address)
-                    // TODO: VERIFY IDANODE CODE
-                    if(unspent !== false && unspent.length > 0){
-                        // TODO: BUILD TRANSACTION METADATA
-                        
+                    let check_sidechain = await app.post('/sidechain/get', { sidechain_address: app.sidechain })
+                    const decimals = check_sidechain[0].data.genesis.decimals
+
+                    if (unspent !== false && unspent.length > 0) {
                         let inputs = []
                         let outputs = {}
                         let amountinput = 0
-                        let amount = math.round(fields.amount, decimals)
+                        let amount = math.round(amount, decimals)
                         let usedtx = []
+
+                        let checkto = await app.get('validate/' + to)
+                        if (checkto.data.isvalid === false) {
+                            return Promise.resolve(false)
+                        }
+
                         for (let i in unspent) {
-                        if (amountinput < amount) {
-                            delete unspent[i]._id
-                            delete unspent[i].sidechain
-                            delete unspent[i].address
-                            let checkinput = await db.collection('sc_transactions').find({ sxid: unspent[i].sxid }).limit(1).toArray()
-                            if (checkinput[0] !== undefined && checkinput[0].transaction.outputs[fields.from] !== undefined && checkinput[0].transaction.outputs[fields.from] === unspent[i].amount) {
-                            if (global['sxidcache'].indexOf(unspent[i].sxid) === -1) {
+                            if (amountinput < amount) {
+                                delete unspent[i]._id
+                                delete unspent[i].sidechain
+                                delete unspent[i].address
                                 delete unspent[i].block
                                 delete unspent[i].redeemblock
                                 delete unspent[i].redeemed
-                                let validateinput = await scwallet.validateinput(unspent[i].sxid, unspent[i].vout, fields.sidechain_address, fields.from)
-                                let isDoubleSpended = await scwallet.checkdoublespending(unspent[i].sxid, unspent[i].vout, fields.sidechain_address, "")
-                                if(validateinput === true && isDoubleSpended === false){
-                                inputs.push(unspent[i])
-                                usedtx.push(unspent[i].sxid)
-                                let toadd = math.round(unspent[i].amount, decimals)
-                                amountinput = math.sum(amountinput, toadd)
-                                amountinput = math.round(amountinput, decimals)
-                                }else{
-                                await db.collection('sc_unspent').deleteOne({"sxid": unspent[i].sxid, "vout": unspent[i].vout})
+                                let cache = await this.returnSXIDCache()
+                                if (cache.indexOf(unspent[i].sxid) === -1) {
+                                    inputs.push(unspent[i])
+                                    usedtx.push(unspent[i].sxid)
+                                    let toadd = math.round(unspent[i].amount, decimals)
+                                    amountinput = math.sum(amountinput, toadd)
+                                    amountinput = math.round(amountinput, decimals)
                                 }
                             }
-                            }
                         }
-                        }
+
                         let totaloutputs = 0
                         amountinput = math.round(amountinput, decimals)
                         amount = math.round(amount, decimals)
-                        if (amountinput >= fields.amount) {
-                        
-                        if(fields.to === check_sidechain[0].address && check_sidechain[0].data.burnable === false){
-                            
-                            res.send({
-                            error: true,
-                            description: "Can\'t burn asset.",
-                            status: 422
-                            })
+                        if (amountinput >= amount) {
 
-                        }else{
+                            if (to === check_sidechain[0].address && check_sidechain[0].data.burnable === false) {
 
-                            outputs[fields.to] = amount
-                            totaloutputs = math.sum(totaloutputs, amount)
+                                return Promise.resolve(false)
 
-                            let change = math.subtract(amountinput, amount)
-                            change = math.round(change, check_sidechain[0].data.genesis.decimals)
-                            if(fields.to !== fields.from){
-                            if (change > 0 && fields.change === undefined) {
-                                outputs[fields.from] = change
-                                totaloutputs = math.sum(totaloutputs, change)
-                            } else if (change > 0 && fields.change !== undefined){
-                                // CHECK IF CHANGE ADDRESS IS VALID
-                                let checkchange = await wallet.request('validateaddress', [fields.change])
-                                if (checkchange['result'].isvalid === true) {
-                                outputs[fields.change] = change
-                                totaloutputs = math.sum(totaloutputs, change)
-                                }else{
-                                // IF NOT, SEND TO MAIN ADDRESS
-                                outputs[fields.from] = change
-                                totaloutputs = math.sum(totaloutputs, change)
-                                }
-                            }
-                            }else{
-                            if (change > 0) {
-                                outputs[fields.from] = math.sum(change, amount)
-                                outputs[fields.from] = math.round(outputs[fields.from], check_sidechain[0].data.genesis.decimals)
-                                totaloutputs = math.sum(totaloutputs, change)
-                            }
-                            }
-
-                            totaloutputs = math.round(totaloutputs, check_sidechain[0].data.genesis.decimals)
-
-                            if (inputs.length > 0 && totaloutputs > 0) {
-                            let transaction = {}
-                            transaction["sidechain"] = fields.sidechain_address
-                            transaction["inputs"] = inputs
-                            transaction["outputs"] = outputs
-                            let memo = ''
-                            if(fields.memo !== undefined){
-                                memo = fields.memo
-                            }
-                            transaction["memo"] = memo
-                            transaction["time"] = new Date().getTime()
-
-                            let signtx = await app.signmessage(fields.private_key, JSON.stringify(transaction))
-
-                            let tx = {
-                                transaction: transaction,
-                                signature: signtx.signature,
-                                pubkey: fields.pubkey,
-                                sxid: signtx.id
-                            }
-
-                            let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
-
-                            if (write !== false) {
-                                res.send(write)
-                                for (let x in usedtx) {
-                                global['sxidcache'].push(usedtx[x])
-                                }
-                                let vout = 0
-                                for (let x in outputs) {
-                                let unspent = {
-                                    sxid: tx.sxid,
-                                    vout: vout,
-                                    address: x,
-                                    amount: outputs[x],
-                                    sidechain: tx.transaction['sidechain']
-                                }
-                                global['usxocache'].push(unspent)
-                                vout++
-                                }
-                                
                             } else {
-                                res.send({
-                                error: true,
-                                description: "Error creating transaction",
-                                status: 422
-                                })
+
+                                outputs[to] = amount
+                                totaloutputs = math.sum(totaloutputs, amount)
+
+                                let change = math.subtract(amountinput, amount)
+                                change = math.round(change, decimals)
+
+                                if (to !== address) {
+                                    if (change > 0 && changeaddress === '') {
+                                        outputs[address] = change
+                                        totaloutputs = math.sum(totaloutputs, change)
+                                    } else if (change > 0 && changeaddress !== '') {
+                                        // CHECK IF CHANGE ADDRESS IS VALID
+                                        let checkchange = await app.get('validate/' + change)
+                                        if (checkchange.data.isvalid === true) {
+                                            outputs[changeaddress] = change
+                                            totaloutputs = math.sum(totaloutputs, change)
+                                        } else {
+                                            // IF NOT, SEND TO MAIN ADDRESS
+                                            outputs[address] = change
+                                            totaloutputs = math.sum(totaloutputs, change)
+                                        }
+                                    }
+                                } else {
+                                    if (change > 0) {
+                                        outputs[address] = math.sum(change, amount)
+                                        outputs[address] = math.round(outputs[address], check_sidechain[0].data.genesis.decimals)
+                                        totaloutputs = math.sum(totaloutputs, change)
+                                    }
+                                }
+
+                                totaloutputs = math.round(totaloutputs, check_sidechain[0].data.genesis.decimals)
+
+                                if (inputs.length > 0 && totaloutputs > 0) {
+                                    let transaction = {}
+                                    transaction["sidechain"] = app.sidechain
+                                    transaction["inputs"] = inputs
+                                    transaction["outputs"] = outputs
+                                    transaction["memo"] = memo
+                                    transaction["time"] = new Date().getTime()
+
+                                    let signtx = await app.signmessage(decrypted.prv, JSON.stringify(transaction))
+
+                                    let tx = {
+                                        transaction: transaction,
+                                        signature: signtx.signature,
+                                        pubkey: decrypted.key,
+                                        sxid: signtx.id
+                                    }
+
+                                    let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
+
+                                    if (written !== false) {
+                                        res.send(written)
+                                        for (let x in usedtx) {
+                                            app.pushSXIDtoCache(usedtx[x])
+                                        }
+                                        let vout = 0
+                                        for (let x in outputs) {
+                                            let unspent = {
+                                                sxid: tx.sxid,
+                                                vout: vout,
+                                                address: x,
+                                                amount: outputs[x],
+                                                sidechain: tx.transaction['sidechain']
+                                            }
+                                            app.pushUSXOtoCache(unspent)
+                                            vout++
+                                        }
+
+                                    } else {
+                                        return Promise.resolve(false)
+                                    }
+                                } else {
+                                    return Promise.resolve(false)
+                                }
                             }
-                            } else {
-                            res.send({
-                                error: true,
-                                description: "Can\'t send transaction",
-                                status: 422
-                            })
-                            }
-                        }
                         } else {
-                        res.send({
-                            error: true,
-                            description: "Insufficient balance",
-                            status: 422
-                        })
-                        }
-                        if(written.txs.length >= 1){
-                            return Promise.resolve(sxid)
-                        }else{
                             return Promise.resolve(false)
                         }
-                    }else{
+                        if (written.txs.length >= 1) {
+                            return Promise.resolve(sxid)
+                        } else {
+                            return Promise.resolve(false)
+                        }
+                    } else {
                         return Promise.resolve(false)
                     }
                 } catch (e) {
@@ -807,7 +853,7 @@ module.exports = class ScryptaCore {
         } else {
             return false
         }
-    }*/
+    }
 
     //PROGRESSIVE DATA MANAGEMENT
     async write(key, password, metadata, collection = '', refID = '', protocol = '', uuid = '') {
@@ -1262,17 +1308,17 @@ module.exports = class ScryptaCore {
 
     shuffle(array) {
         var currentIndex = array.length, temporaryValue, randomIndex;
-        
+
         while (0 !== currentIndex) {
-        
+
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex -= 1;
-        
+
             temporaryValue = array[currentIndex];
             array[currentIndex] = array[randomIndex];
             array[randomIndex] = temporaryValue;
         }
-        
+
         return array;
     }
 }
