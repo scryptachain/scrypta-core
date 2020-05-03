@@ -708,9 +708,9 @@ module.exports = class ScryptaCore {
                             delete unspent[i].redeemblock
                             delete unspent[i].redeemed
                             let cache = await this.returnSXIDCache()
-                            if (cache.indexOf(unspent[i].sxid) === -1) {
+                            if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
                                 inputs.push(unspent[i])
-                                usedtx.push(unspent[i].sxid)
+                                usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
                                 let toadd = app.math.round(unspent[i].amount, decimals)
                                 amountinput = app.math.sum(amountinput, toadd)
                                 amountinput = app.math.round(amountinput, decimals)
