@@ -158,13 +158,15 @@ module.exports = class ScryptaCore {
     }
 
     //CACHE FUNCTIONS
-    async clearCache() {
+    async clearCache(force = false) {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            await db.destroy('sxidcache')
+            if(force){
+                await db.destroy('sxidcache')
+                await db.destroy('txidcache')
+            }
             await db.destroy('usxocache')
-            await db.destroy('txidcache')
             await db.destroy('utxocache')
             response(true)
         })
