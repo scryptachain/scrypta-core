@@ -6,13 +6,6 @@ You can use this version by installing it directly from npm:
 
 ```npm install --save @scrypta/core```
 
-
-# Scrypta-Core Browser
-
-If you need to use it directly on browser please refer to `webkit` branch and use the file under the dist/ folder:
-
-https://github.com/scryptachain/scrypta-core/blob/webpack/dist/scryptacore.js
-
 # Use your own IdaNodes
 
 To override the IdaNodes list you've to rewrite the array like this:
