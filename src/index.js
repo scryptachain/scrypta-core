@@ -984,7 +984,7 @@ module.exports = class ScryptaCore {
                             while (txid !== null && txid !== undefined && txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
                                 //console.log('STORING CHUNK #' + cix, chunks[cix])
-                                rawtransaction = await this.build(eallet, password, false, wallet, 0, chunks[cix], fees)
+                                rawtransaction = await this.build(wallet, password, false, address, 0, chunks[cix], fees)
                                 txid = await this.sendRawTransaction(rawtransaction.signed)
                                 //console.log(txid)
                                 if (txid !== null && txid !== false && txid.length === 64) {
