@@ -130,6 +130,36 @@ module.exports = class ScryptaCore {
         })
     }
 
+    async returnLastChecksum(version){
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let last = await db.get('checksums', 'version', version)
+            if(last === false){
+                try{
+                    let checksums_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanodejs/master/checksum')
+                    let checksums = checksums_git.data.split("\n")
+                    for(let x in checksums){
+                        let checksum = checksums[x].split(':')
+                        console.log(checksum)
+                        if(checksum[0] === version){
+                            await db.put('checksums', {
+                                version: version,
+                                checksum: checksum[1]
+                            })
+                            response(checksum[1])
+                        }
+                    }
+                }catch(e){
+                    console.log(e)
+                    response(false)
+                }
+            }else{
+                response(last.checksum)
+            }
+        })
+    }
+
     async returnFirstNode() {
         const app = this
         return new Promise(response => {
@@ -137,8 +167,15 @@ module.exports = class ScryptaCore {
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
-                    axios.get(checknodes[i] + '/wallet/getinfo').then(check => {
-                        if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0) {
+                    axios.get(checknodes[i] + '/wallet/getinfo').then(async check => {
+                        let checksum = await app.returnLastChecksum(check.data.version)
+                        let isValid = true
+                        if(checksum !== false){
+                            if(check.data.checksum !== checksum){
+                                isValid = false
+                            }
+                        }
+                        if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0 && isValid) {
                             connected = true
                             if (check.config.url !== undefined) {
                                 response(check.config.url.replace('/wallet/getinfo', ''))
