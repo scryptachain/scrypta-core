@@ -32,7 +32,7 @@ module.exports = class ScryptaCore {
     constructor(isBrowser = false) {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
-        this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
+        this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org','https://idanodejs02.scryptachain.org','https://idanodejs03.scryptachain.org','https://idanodejs04.scryptachain.org','https://idanodejs05.scryptachain.org','https://idanodejs06.scryptachain.org']
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.testnet = false
         this.portP2P = 42226
@@ -52,11 +52,34 @@ module.exports = class ScryptaCore {
 
     //IDANODE FUNCTIONS
     returnNodes() {
-        if (this.testnet === true) {
-            return this.testnetIdaNodes
-        } else {
-            return this.mainnetIdaNodes
-        }
+        const app = this
+        return new Promise(async response => {
+            if (this.testnet === true) {
+                response(app.testnetIdaNodes)
+            } else {
+                const db = new ScryptaDB(app.isBrowser)
+                let idanodes = await db.get('nodes')
+                try{
+                    let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peers')
+                    let raw_nodes = nodes_git.data.split("\n")
+                    let nodes = []
+                    for(let x in raw_nodes){
+                        let node = raw_nodes[x].split(':')
+                        let url = 'https://idanodejs' + node[0] + '.scryptachain.org'
+                        await db.put('nodes', url)
+                        nodes.push(url)
+                    }
+                    response(nodes)
+                }catch(e){
+                    if(idanodes.length > 0){
+                        response(idanodes)
+                    }else{
+                        // FALLBACK TO STATIC NODES IF GIT FAILS AND DB IS EMPTY
+                        response(app.mainnetIdaNodes)
+                    }
+                }
+            }
+        })
     }
 
     post(endpoint, params, node = '') {

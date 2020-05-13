@@ -1,8 +1,15 @@
 let ScryptaCore = require('../src/index.js')
 let scrypta = new ScryptaCore
-scrypta.mainnetIdaNodes = ['http://localhost:3001'] //OVVERIDE IDANODES
+// scrypta.mainnetIdaNodes = ['http://localhost:3001'] //OVVERIDE IDANODES
 
+// SHOULD RETURN ALL IDANODES
+async function testnodes(){
+   let nodes = await scrypta.returnNodes()
+   console.log(nodes)
+}
+testnodes()
 // SHOULD CREATE ADDRESS
+
 let password = '123456'
 scrypta.createAddress(password, true).then(async res => {
     // SHOULD RETURN THE WALLETSTORE
