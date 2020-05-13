@@ -141,7 +141,6 @@ module.exports = class ScryptaCore {
                     let checksums = checksums_git.data.split("\n")
                     for(let x in checksums){
                         let checksum = checksums[x].split(':')
-                        console.log(checksum)
                         if(checksum[0] === version){
                             await db.put('checksums', {
                                 version: version,
