@@ -72,19 +72,18 @@ describe('Idanodes', async function() {
 
 describe('Planum', async function() {
     it('Should return a list of unspent', function(){
-        this.timeout(10000)
+        this.timeout(20000)
         return new Promise(async response => {
             scrypta.usePlanum('6ShzCp8oXAqVSZdrkNMSj13ghobwZZRzGm')
-            let unspent = await scrypta.listPlanumUnspent('LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2')
-            console.log(unspent)
-            assert.notEqual(false, unspent);
+            let unspent = await scrypta.listPlanumUnspent('LchzGX6vqmanceCzNUMTk5cmnt1p6knGgT')
+            assert.equal(1, unspent.length);
         })
     })
 })
 
 describe('P2P Network', async function() {
     it('Should connect to p2p network and send a message', function(){
-        this.timeout(10000)
+        this.timeout(15000)
         return new Promise(async response => {
             let address = await scrypta.createAddress(password, true)
             scrypta.connectP2P(address.walletstore, password, function(received){
