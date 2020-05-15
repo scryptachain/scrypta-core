@@ -4,8 +4,8 @@ let scrypta = new ScryptaCore
 
 // SHOULD RETURN ALL IDANODES
 async function testnodes(){
-   let nodes = await scrypta.returnNodes()
-   console.log(nodes)
+   let node = await scrypta.connectNode()
+   console.log(node)
 }
 testnodes()
 // SHOULD CREATE ADDRESS

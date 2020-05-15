@@ -184,8 +184,9 @@ module.exports = class ScryptaCore {
 
     async returnFirstNode() {
         const app = this
-        return new Promise(response => {
-            var checknodes = this.shuffle(this.returnNodes())
+        return new Promise(async response => {
+            let nodes = await this.returnNodes()
+            var checknodes = this.shuffle(nodes)
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
@@ -898,7 +899,7 @@ module.exports = class ScryptaCore {
                         return Promise.resolve(false)
                     }
                 } else {
-                    console.log('NO UNSPENT')
+                    // console.log('NO UNSPENT')
                     return Promise.resolve(false)
                 }
             } else {
