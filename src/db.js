@@ -12,7 +12,7 @@ module.exports = class ScryptaDB {
     loadBrowserDB(){
         const db = this
         return new Promise(response => {
-            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages"]
+            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages","identity"]
             for(let x in collections){
                 if (localStorage.getItem(collections[x]) !== null) {
                     db.data[collections[x]] = JSON.parse(localStorage.getItem(collections[x]))
@@ -29,7 +29,7 @@ module.exports = class ScryptaDB {
         const db = this
         return new Promise(response => {
             db.dir = './db';
-            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages"]
+            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages","identity"]
             if (db.fs.existsSync(db.dir) === false){
                 db.fs.mkdirSync(db.dir)
             }

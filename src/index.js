@@ -1308,16 +1308,18 @@ module.exports = class ScryptaCore {
 
     setDefaultIdentity(address) {
         const app = this
-        return new Promise(response => {
-            if (app.isBrowser) {
-                const db = new ScryptaDB(app.isBrowser)
-                let wallet = db.get('wallet', 'address', address)
-                // console.log(wallet)
-                if (wallet !== false) {
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let wallet = await db.get('wallet', 'address', address)
+            if (wallet !== false && wallet !== null) {
+                if (app.isBrowser) {
+                    // console.log(wallet)
                     localStorage.setItem('SID', wallet.wallet)
                     response(true)
                 } else {
-                    response(false)
+                    await db.destroy('identity')
+                    await db.put('identity', wallet)
+                    response(true)
                 }
             } else {
                 response(false)
@@ -1327,13 +1329,13 @@ module.exports = class ScryptaCore {
 
     returnDefaultIdentity() {
         const app = this
-        return new Promise(response => {
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
             if (app.isBrowser) {
                 if (localStorage.getItem('SID') !== null) {
                     response(localStorage.getItem('SID'))
                 } else {
-                    const db = new ScryptaDB(app.isBrowser)
-                    let wallet = db.get('wallet')
+                    let wallet = await db.get('wallet')
                     if (wallet !== false && wallet[0] !== undefined) {
                         localStorage.setItem('SID', wallet[0].wallet)
                         response(wallet)
@@ -1342,7 +1344,12 @@ module.exports = class ScryptaCore {
                     }
                 }
             } else {
-                response(false)
+                let wallet = await db.get('identity')
+                if (wallet !== false){
+                    response(wallet)
+                }else{
+                    response(false)
+                }
             }
         })
     }
