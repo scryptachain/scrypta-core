@@ -1345,8 +1345,8 @@ module.exports = class ScryptaCore {
                 }
             } else {
                 let wallet = await db.get('identity')
-                if (wallet !== false){
-                    response(wallet)
+                if (wallet !== false && wallet[0] !== undefined){
+                    response(wallet[0])
                 }else{
                     response(false)
                 }
