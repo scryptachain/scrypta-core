@@ -401,10 +401,18 @@ module.exports = class ScryptaCore {
             var walletstore = pub + ':' + wallethex;
 
             if (saveKey === true) {
-                await db.put('wallet', {
-                    address: pub,
-                    wallet: walletstore
-                })
+                let check = await db.get('wallet', 'address', pub)
+                if (!check) {
+                    await db.put('wallet', {
+                        address: pub,
+                        wallet: walletstore
+                    })
+                }else{
+                    await db.update('wallet', 'address', pub, {
+                        address: pub,
+                        wallet: walletstore
+                    })
+                }
             }
 
             response(walletstore)
