@@ -71,13 +71,11 @@ describe('Idanodes', async function() {
 });
 
 describe('Planum', async function() {
-    it('Should return a list of unspent', function(){
-        this.timeout(20000)
-        return new Promise(async response => {
-            scrypta.usePlanum('6ShzCp8oXAqVSZdrkNMSj13ghobwZZRzGm')
-            let unspent = await scrypta.listPlanumUnspent('LchzGX6vqmanceCzNUMTk5cmnt1p6knGgT')
-            assert.equal(1, unspent.length);
-        })
+    it('Should return a list of unspent', async function(){
+        this.timeout(30000)
+        scrypta.usePlanum('6ShzCp8oXAqVSZdrkNMSj13ghobwZZRzGm')
+        let unspent = await scrypta.listPlanumUnspent('LchzGX6vqmanceCzNUMTk5cmnt1p6knGgT')
+        assert.equal(1, unspent.length);
     })
 })
 
@@ -86,7 +84,7 @@ describe('P2P Network', async function() {
         this.timeout(15000)
         return new Promise(async response => {
             let address = await scrypta.createAddress(password, true)
-            scrypta.connectP2P(address.walletstore, password, function(received){
+            scrypta.connectP2P(function(received){
                 response(received)
             })
             setTimeout(function(){

@@ -709,30 +709,32 @@ module.exports = class ScryptaCore {
     }
 
     async listPlanumUnspent(address) {
-        const app = this
-        let unspent = []
-
-        // PUSHING LOCAL CACHE
-        var cache = await this.returnUSXOCache()
-        if (cache !== undefined && cache.length > 0) {
-            for (var x = 0; x < cache.length; x++) {
-                unspent.push(cache[x])
-            }
-        }
-        
-        if (app.sidechain !== '') {
-            let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
-            if (unspentnode.unspent !== undefined) {
-                for(let x in unspentnode.unspent){
-                    unspent.push(unspentnode.unspent[x])
+        return new Promise(async response => {
+            const app = this
+            let unspent = []
+            
+            // PUSHING LOCAL CACHE
+            var cache = await this.returnUSXOCache()
+            if (cache !== undefined && cache.length > 0) {
+                for (var x = 0; x < cache.length; x++) {
+                    unspent.push(cache[x])
                 }
-                return unspent
-            } else {
-                return false
             }
-        } else {
-            return false
-        }
+            
+            if (app.sidechain !== '') {
+                let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
+                if (unspentnode.unspent !== undefined) {
+                    for(let x in unspentnode.unspent){
+                        unspent.push(unspentnode.unspent[x])
+                    }
+                    response(unspent)
+                } else {
+                    response(false)
+                }
+            } else {
+                response(false)
+            }
+        })
     }
 
     async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '') {
@@ -1182,52 +1184,46 @@ module.exports = class ScryptaCore {
 
     // P2P FUNCTIONALITIES
 
-    async connectP2P(key, password, callback) {
+    async connectP2P(callback) {
         const app = this
         let nodes = await this.returnNodes()
         const db = new ScryptaDB(app.isBrowser)
-        key = await this.returnKey(key)
-        let SIDS = key.split(':')
-        let address = SIDS[0]
-        let wallet = await this.readKey(password, key)
-        if (wallet !== false) {
-            // console.log('Loaded identity ' + address)
-            for (let x in nodes) {
-                let node = nodes[x]
-                let check = await app.checkNode(node)
-                if (check !== false) {
-                    // console.log('Bootstrap connection to ' + node)
-                    global['nodes'][node] = require('socket.io-client')(node.replace('https', 'http') + ':' + this.portP2P, { reconnect: true })
-                    global['nodes'][node].on('connect', function () {
-                        // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
-                        global['connected'][node] = true
-                    })
-                    global['nodes'][node].on('disconnect', function () {
-                        // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
-                        global['connected'][node] = false
-                    })
 
-                    //PROTOCOLS
-                    global['nodes'][node].on('message', async function (data) {
-                        let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
-                        if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
-                            global['cache'].push(data.signature)
-                            let check = await db.get('messages', 'signature', data.signature)
-                            if (!check) {
-                                await db.put('messages', {
-                                    signature: data.signature,
-                                    message: data.message,
-                                    pubKey: data.pubKey,
-                                    address: data.address
-                                }).catch(err => {
-                                    // console.log(err)
-                                }).then(success => {
-                                    callback(data)
-                                })
-                            }
+        for (let x in nodes) {
+            let node = nodes[x]
+            let check = await app.checkNode(node)
+            if (check !== false) {
+                // console.log('Bootstrap connection to ' + node)
+                global['nodes'][node] = require('socket.io-client')(node.replace('https', 'http') + ':' + this.portP2P, { reconnect: true })
+                global['nodes'][node].on('connect', function () {
+                    // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                    global['connected'][node] = true
+                })
+                global['nodes'][node].on('disconnect', function () {
+                    // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
+                    global['connected'][node] = false
+                })
+
+                //PROTOCOLS
+                global['nodes'][node].on('message', async function (data) {
+                    let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
+                    if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
+                        global['cache'].push(data.signature)
+                        let check = await db.get('messages', 'signature', data.signature)
+                        if (!check) {
+                            await db.put('messages', {
+                                signature: data.signature,
+                                message: data.message,
+                                pubKey: data.pubKey,
+                                address: data.address
+                            }).catch(err => {
+                                // console.log(err)
+                            }).then(success => {
+                                callback(data)
+                            })
                         }
-                    })
-                }
+                    }
+                })
             }
         }
     }
