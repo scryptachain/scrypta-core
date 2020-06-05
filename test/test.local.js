@@ -4,6 +4,11 @@ var assert = require('assert')
 const password = '123456'
 
 describe('Addresses', async function() {
+    it('Should returna all nodes', async function(){
+        let nodes = await scrypta.returnNodes()
+        console.log(nodes)
+        assert.equal(9, nodes.length);
+    })
     it('Address should be length 34 bytes', async function(){
         let address = await scrypta.createAddress(password, true)
         assert.equal(34, address.pub.length);
@@ -87,7 +92,7 @@ describe('P2P Network', async function() {
             scrypta.connectP2P(function(received){
                 response(received)
             })
-            setTimeout(function(){
+            setInterval(function(){
                 scrypta.broadcast(address.walletstore, password, 'message', 'Now are '+ new Date() +'!')
             },3500)
         })
