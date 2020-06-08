@@ -32,8 +32,9 @@ module.exports = class ScryptaCore {
     constructor(isBrowser = false) {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
-        this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org','https://idanodejs02.scryptachain.org','https://idanodejs03.scryptachain.org','https://idanodejs04.scryptachain.org','https://idanodejs05.scryptachain.org','https://idanodejs06.scryptachain.org']
+        this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
+        this.staticnodes = false
         this.testnet = false
         this.portP2P = 42226
         this.sidechain = ''
@@ -54,30 +55,34 @@ module.exports = class ScryptaCore {
     returnNodes() {
         const app = this
         return new Promise(async response => {
-            if (this.testnet === true) {
-                response(app.testnetIdaNodes)
-            } else {
-                const db = new ScryptaDB(app.isBrowser)
-                let idanodes = await db.get('nodes')
-                try{
-                    let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peers')
-                    let raw_nodes = nodes_git.data.split("\n")
-                    let nodes = []
-                    for(let x in raw_nodes){
-                        let node = raw_nodes[x].split(':')
-                        let url = 'https://idanodejs' + node[0] + '.scryptachain.org'
-                        await db.put('nodes', url)
-                        nodes.push(url)
-                    }
-                    response(nodes)
-                }catch(e){
-                    if(idanodes.length > 0){
-                        response(idanodes)
-                    }else{
-                        // FALLBACK TO STATIC NODES IF GIT FAILS AND DB IS EMPTY
-                        response(app.mainnetIdaNodes)
+            if (this.staticnodes === false) {
+                if (this.testnet === true) {
+                    response(app.testnetIdaNodes)
+                } else {
+                    const db = new ScryptaDB(app.isBrowser)
+                    let idanodes = await db.get('nodes')
+                    try {
+                        let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peers')
+                        let raw_nodes = nodes_git.data.split("\n")
+                        let nodes = []
+                        for (let x in raw_nodes) {
+                            let node = raw_nodes[x].split(':')
+                            let url = 'https://idanodejs' + node[0] + '.scryptachain.org'
+                            await db.put('nodes', url)
+                            nodes.push(url)
+                        }
+                        response(nodes)
+                    } catch (e) {
+                        if (idanodes.length > 0) {
+                            response(idanodes)
+                        } else {
+                            // FALLBACK TO STATIC NODES IF GIT FAILS AND DB IS EMPTY
+                            response(app.mainnetIdaNodes)
+                        }
                     }
                 }
+            } else {
+                response(app.mainnetIdaNodes)
             }
         })
     }
@@ -153,18 +158,18 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async returnLastChecksum(version){
+    async returnLastChecksum(version) {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
             let last = await db.get('checksums', 'version', version)
-            if(last === false){
-                try{
+            if (last === false) {
+                try {
                     let checksums_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanodejs/master/checksum')
                     let checksums = checksums_git.data.split("\n")
-                    for(let x in checksums){
+                    for (let x in checksums) {
                         let checksum = checksums[x].split(':')
-                        if(checksum[0] === version){
+                        if (checksum[0] === version) {
                             await db.put('checksums', {
                                 version: version,
                                 checksum: checksum[1]
@@ -172,11 +177,11 @@ module.exports = class ScryptaCore {
                             response(checksum[1])
                         }
                     }
-                }catch(e){
+                } catch (e) {
                     console.log(e)
                     response(false)
                 }
-            }else{
+            } else {
                 response(last.checksum)
             }
         })
@@ -193,8 +198,8 @@ module.exports = class ScryptaCore {
                     axios.get(checknodes[i] + '/wallet/getinfo').then(async check => {
                         let checksum = await app.returnLastChecksum(check.data.version)
                         let isValid = true
-                        if(checksum !== false){
-                            if(check.data.checksum !== checksum){
+                        if (checksum !== false) {
+                            if (check.data.checksum !== checksum) {
                                 isValid = false
                             }
                         }
@@ -222,7 +227,7 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(async response => {
             const db = new ScryptaDB(app.isBrowser)
-            if(force){
+            if (force) {
                 await db.destroy('sxidcache')
                 await db.destroy('txidcache')
             }
@@ -276,7 +281,7 @@ module.exports = class ScryptaCore {
             response(cache)
         })
     }
-    
+
     async pushSXIDtoCache(sxid) {
         const app = this
         return new Promise(async response => {
@@ -285,7 +290,7 @@ module.exports = class ScryptaCore {
             response(true)
         })
     }
-    
+
     async returnUSXOCache() {
         const app = this
         return new Promise(async response => {
@@ -294,7 +299,7 @@ module.exports = class ScryptaCore {
             response(cache)
         })
     }
-    
+
     async pushUSXOtoCache(usxo) {
         const app = this
         return new Promise(async response => {
@@ -407,7 +412,7 @@ module.exports = class ScryptaCore {
                         address: pub,
                         wallet: walletstore
                     })
-                }else{
+                } else {
                     await db.update('wallet', 'address', pub, {
                         address: pub,
                         wallet: walletstore
@@ -712,7 +717,7 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             const app = this
             let unspent = []
-            
+
             // PUSHING LOCAL CACHE
             var cache = await this.returnUSXOCache()
             if (cache !== undefined && cache.length > 0) {
@@ -720,11 +725,11 @@ module.exports = class ScryptaCore {
                     unspent.push(cache[x])
                 }
             }
-            
+
             if (app.sidechain !== '') {
                 let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
                 if (unspentnode.unspent !== undefined) {
-                    for(let x in unspentnode.unspent){
+                    for (let x in unspentnode.unspent) {
                         unspent.push(unspentnode.unspent[x])
                     }
                     response(unspent)
@@ -848,7 +853,7 @@ module.exports = class ScryptaCore {
                                     sxid: signtx.hash
                                 }
 
-                                let validatetransaction = await app.post('/sidechain/validate', 
+                                let validatetransaction = await app.post('/sidechain/validate',
                                     {
                                         transaction: tx,
                                         address: address,
@@ -858,11 +863,11 @@ module.exports = class ScryptaCore {
                                     }
                                 )
 
-                                if(validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined){
+                                if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
                                     let sent = false
                                     let txs = []
                                     let retry = 0
-                                    while(sent === false){
+                                    while (sent === false) {
                                         let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
                                         if (written.txs.length >= 1 && written.txs[0] !== null) {
                                             for (let x in usedtx) {
@@ -877,30 +882,30 @@ module.exports = class ScryptaCore {
                                                     amount: outputs[x],
                                                     sidechain: tx.transaction['sidechain']
                                                 }
-                                                if(unspent.address === address){
+                                                if (unspent.address === address) {
                                                     await app.pushUSXOtoCache(unspent)
                                                 }
                                                 vout++
                                             }
                                             sent = true
                                             txs = written.txs
-                                        }else{
+                                        } else {
                                             retry++
                                             await app.sleep(2000)
                                         }
-                                        if(retry > 10){
+                                        if (retry > 10) {
                                             sent = true
                                         }
                                     }
-                                    if(txs.length >= 1){
+                                    if (txs.length >= 1) {
                                         return Promise.resolve(tx.sxid)
-                                    }else{
+                                    } else {
                                         return Promise.resolve(false)
                                     }
-                                }else{
+                                } else {
                                     return Promise.resolve(false)
                                 }
-                                
+
                             } else {
                                 return Promise.resolve(false)
                             }
@@ -1349,9 +1354,9 @@ module.exports = class ScryptaCore {
                 }
             } else {
                 let wallet = await db.get('identity')
-                if (wallet !== false && wallet[0] !== undefined){
+                if (wallet !== false && wallet[0] !== undefined) {
                     response(wallet[0])
-                }else{
+                } else {
                     response(false)
                 }
             }
