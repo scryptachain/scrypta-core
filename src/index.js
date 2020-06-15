@@ -317,9 +317,12 @@ module.exports = class ScryptaCore {
     //CRYPT AND ENCRYPT FUNCTIONS
     async cryptData(data, password) {
         return new Promise(response => {
-            const cipher = crypto.createCipher('aes-256-cbc', password)
-            let hex = cipher.update(JSON.stringify(data), 'utf8', 'hex')
-            hex += cipher.final('hex')
+            let iv = crypto.randomBytes(16)
+            let key = crypto.createHash('sha256').update(String(password)).digest('base64').substr(0, 32)
+            let cipher = crypto.createCipheriv('aes-256-ctr', key, iv);
+            let encrypted = cipher.update(data);
+            encrypted = Buffer.concat([encrypted, cipher.final()]);
+            let hex = iv.toString('hex') + '*' + encrypted.toString('hex')
             response(hex)
         })
     }
@@ -327,10 +330,22 @@ module.exports = class ScryptaCore {
     async decryptData(data, password) {
         return new Promise(response => {
             try {
-                var decipher = crypto.createDecipher('aes-256-cbc', password)
-                var dec = decipher.update(data, 'hex', 'utf8')
-                dec += decipher.final('utf8')
-                response(dec)
+                if(data.indexOf('*') === -1){
+                    // MAINTAIN FALLBACK TO OLD ENCRYPTED WALLETS
+                    var decipher = crypto.createDecipher('aes-256-cbc', password)
+                    var dec = decipher.update(data, 'hex', 'utf8')
+                    dec += decipher.final('utf8')
+                    response(dec)
+                }else{
+                    let textParts = data.split('*');
+                    let iv = Buffer.from(textParts.shift(), 'hex')
+                    let encryptedText = Buffer.from(textParts.join('*'), 'hex')
+                    let key = crypto.createHash('sha256').update(String(password)).digest('base64').substr(0, 32)
+                    let decipher = crypto.createDecipheriv('aes-256-ctr', key, iv)
+                    let decrypted = decipher.update(encryptedText)
+                    decrypted = Buffer.concat([decrypted, decipher.final()])
+                    response(decrypted.toString())
+                }
             } catch (e) {
                 response(false)
             }
@@ -399,10 +414,7 @@ module.exports = class ScryptaCore {
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
 
-            const cipher = crypto.createCipher('aes-256-cbc', password);
-            let wallethex = cipher.update(JSON.stringify(wallet), 'utf8', 'hex');
-            wallethex += cipher.final('hex');
-
+            let wallethex = await this.cryptData(JSON.stringify(wallet), password)
             var walletstore = pub + ':' + wallethex;
 
             if (saveKey === true) {
@@ -513,10 +525,7 @@ module.exports = class ScryptaCore {
             if (password !== '') {
                 var SIDS = key.split(':');
                 try {
-                    var decipher = crypto.createDecipher('aes-256-cbc', password);
-                    var dec = decipher.update(SIDS[1], 'hex', 'utf8');
-                    dec += decipher.final('utf8');
-                    var decrypted = JSON.parse(dec);
+                    let decrypted = await this.decryptData(SIDS[1], password)
                     return Promise.resolve(decrypted);
                 } catch (ex) {
                     // console.log('WRONG PASSWORD')
@@ -1292,9 +1301,7 @@ module.exports = class ScryptaCore {
                     let pub = key.exportKey('pkcs8-public-pem');
                     let prv = key.exportKey('pkcs8-pem');
 
-                    const cipher = crypto.createCipher('aes-256-cbc', password);
-                    let prvhex = cipher.update(prv, 'utf8', 'hex');
-                    prvhex += cipher.final('hex')
+                    let prvhex = await this.cryptData(prv, password)
                     let checkdecryption = await this.decryptData(prvhex, password)
                     if (checkdecryption === prv) {
                         stored.rsa = {
