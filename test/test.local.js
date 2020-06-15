@@ -4,10 +4,9 @@ var assert = require('assert')
 const password = '123456'
 
 describe('Addresses', async function() {
-    it('Should returna all nodes', async function(){
+    it('Should return all nodes', async function(){
         let nodes = await scrypta.returnNodes()
-        console.log(nodes)
-        assert.equal(9, nodes.length);
+        assert.equal(14, nodes.length);
     })
     it('Address should be length 34 bytes', async function(){
         let address = await scrypta.createAddress(password, true)
@@ -44,6 +43,7 @@ describe('Addresses', async function() {
         let password = 'password'
         await scrypta.importPrivateKey(prv, password)
         let tx = await scrypta.send(pub, password, to, amount)
+        console.log(tx)
         assert.equal(64, tx.length);
     })
     it('Should create RSA keys for identity', async function(){

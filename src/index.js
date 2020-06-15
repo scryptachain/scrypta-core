@@ -526,7 +526,7 @@ module.exports = class ScryptaCore {
                 var SIDS = key.split(':');
                 try {
                     let decrypted = await this.decryptData(SIDS[1], password)
-                    return Promise.resolve(decrypted);
+                    return Promise.resolve(JSON.parse(decrypted));
                 } catch (ex) {
                     // console.log('WRONG PASSWORD')
                     return Promise.resolve(false);
@@ -583,10 +583,8 @@ module.exports = class ScryptaCore {
         if (password !== '') {
             var SIDS = SID.split(':');
             try {
-                var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(SIDS[1], 'hex', 'utf8');
-                dec += decipher.final('utf8');
-                var decrypted = JSON.parse(dec);
+                let decrypted = await this.decryptData(SIDS[1], password)
+                decrypted = JSON.parse(decrypted)
                 var trx = Trx.transaction();
                 var from = SIDS[0]
                 var unspent = []
@@ -672,39 +670,40 @@ module.exports = class ScryptaCore {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
                 try {
-                    var decipher = crypto.createDecipher('aes-256-cbc', password);
-                    var dec = decipher.update(SIDS[1], 'hex', 'utf8');
-                    dec += decipher.final('utf8');
-
-                    var txid = ''
-                    var i = 0
-                    var rawtransaction
-                    while (txid !== null && txid !== undefined && txid.length !== 64) {
-                        var fees = 0.001 + (i / 1000)
-                        rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
-                        txid = await this.sendRawTransaction(rawtransaction.signed)
-                        if (txid !== null && txid !== false && txid.length === 64) {
-                            for (let i in rawtransaction.inputs) {
-                                await this.pushTXIDtoCache(rawtransaction.inputs[i])
-                            }
-                            //Storing UTXO to cache
-                            var decoded = await this.decodeRawTransaction(rawtransaction.signed)
-                            if (decoded.vout[1].scriptPubKey.addresses !== undefined) {
-                                let unspent = {
-                                    txid: decoded.txid,
-                                    vout: 1,
-                                    address: decoded.vout[1].scriptPubKey.addresses[0],
-                                    scriptPubKey: decoded.vout[1].scriptPubKey.hex,
-                                    amount: decoded.vout[1].value
+                    let decrypted = await this.decryptData(SIDS[1], password)
+                    if(decrypted !== false){
+                        var txid = ''
+                        var i = 0
+                        var rawtransaction
+                        while (txid !== null && txid !== undefined && txid.length !== 64) {
+                            var fees = 0.001 + (i / 1000)
+                            rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
+                            txid = await this.sendRawTransaction(rawtransaction.signed)
+                            if (txid !== null && txid !== false && txid.length === 64) {
+                                for (let i in rawtransaction.inputs) {
+                                    await this.pushTXIDtoCache(rawtransaction.inputs[i])
                                 }
-                                await this.pushUTXOtoCache(unspent)
+                                //Storing UTXO to cache
+                                var decoded = await this.decodeRawTransaction(rawtransaction.signed)
+                                if (decoded.vout[1].scriptPubKey.addresses !== undefined) {
+                                    let unspent = {
+                                        txid: decoded.txid,
+                                        vout: 1,
+                                        address: decoded.vout[1].scriptPubKey.addresses[0],
+                                        scriptPubKey: decoded.vout[1].scriptPubKey.hex,
+                                        amount: decoded.vout[1].value
+                                    }
+                                    await this.pushUTXOtoCache(unspent)
+                                }
+                            } else {
+                                txid = null
                             }
-                        } else {
-                            txid = null
+                            i++;
                         }
-                        i++;
+                        return Promise.resolve(txid)
+                    }else{
+                        return Promise.resolve(false)
                     }
-                    return Promise.resolve(txid)
                 } catch (e) {
                     return Promise.resolve(false)
                 }
@@ -758,10 +757,8 @@ module.exports = class ScryptaCore {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
                 try {
-                    var decipher = crypto.createDecipher('aes-256-cbc', password);
-                    var dec = decipher.update(SIDS[1], 'hex', 'utf8');
-                    dec += decipher.final('utf8');
-                    var decrypted = JSON.parse(dec);
+                    let decrypted = await this.decryptData(SIDS[1], password)
+                    decrypted = JSON.parse(decrypted)
                 } catch (e) {
                     return Promise.resolve(false)
                 }
@@ -943,174 +940,174 @@ module.exports = class ScryptaCore {
                 var MAX_OPRETURN = 7500
                 try {
                     //console.log('WRITING TO BLOCKCHAIN')
-                    var decipher = crypto.createDecipher('aes-256-cbc', password);
-                    var dec = decipher.update(SIDS[1], 'hex', 'utf8');
-                    dec += decipher.final('utf8');
+                    let decrypted = await this.decryptData(SIDS[1], password)
+                    if(decrypted !== false){
+                        let address = SIDS[0]
 
-                    let address = SIDS[0]
-
-                    if (uuid === '') {
-                        var Uuid = require('uuid/v4')
-                        uuid = Uuid().replace(new RegExp('-', 'g'), '.')
-                    }
-
-                    if (collection !== '') {
-                        collection = '!*!' + collection
-                    } else {
-                        collection = '!*!'
-                    }
-
-                    if (refID !== '') {
-                        refID = '!*!' + refID
-                    } else {
-                        refID = '!*!'
-                    }
-
-                    if (protocol !== '') {
-                        protocol = '!*!' + protocol
-                    } else {
-                        protocol = '!*!'
-                    }
-
-                    var dataToWrite = '*!*' + uuid + collection + refID + protocol + '*=>' + metadata + '*!*'
-                    if (dataToWrite.length <= MAX_OPRETURN) {
-                        var txid = ''
-                        var i = 0
-                        var totalfees = 0
-                        while (txid !== null && txid !== undefined && txid.length !== 64) {
-                            var fees = 0.001 + (i / 1000)
-                            var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
-                            // console.log(rawtransaction.signed)
-                            if (rawtransaction.signed !== false) {
-                                txid = await this.sendRawTransaction(rawtransaction.signed)
-                                if (txid !== null && txid !== false && txid.length === 64) {
-                                    totalfees += fees
-                                    for (let i in rawtransaction.inputs) {
-                                        await this.pushTXIDtoCache(rawtransaction.inputs[i])
-                                    }
-                                    //Storing UTXO to cache
-                                    var decoded = await this.decodeRawTransaction(rawtransaction.signed)
-                                    if (decoded.vout[0].scriptPubKey.addresses !== undefined) {
-                                        let unspent = {
-                                            txid: decoded.txid,
-                                            vout: 0,
-                                            address: decoded.vout[0].scriptPubKey.addresses[0],
-                                            scriptPubKey: decoded.vout[0].scriptPubKey.hex,
-                                            amount: decoded.vout[0].value
-                                        }
-                                        await this.pushUTXOtoCache(unspent)
-                                    }
-                                }
-                            } else {
-                                txid = null
-                            }
-                            i++;
+                        if (uuid === '') {
+                            var Uuid = require('uuid/v4')
+                            uuid = Uuid().replace(new RegExp('-', 'g'), '.')
                         }
 
-                        return Promise.resolve({
-                            uuid: uuid,
-                            address: wallet,
-                            fees: totalfees,
-                            collection: collection.replace('!*!', ''),
-                            refID: refID.replace('!*!', ''),
-                            protocol: protocol.replace('!*!', ''),
-                            dimension: dataToWrite.length,
-                            chunks: 1,
-                            stored: dataToWrite,
-                            txs: [txid]
-                        })
-
-                    } else {
-
-                        var txs = []
-                        var chunklength = MAX_OPRETURN - 6
-                        var chunkdatalimit = chunklength - 3
-                        var dataToWriteLength = dataToWrite.length
-                        var nchunks = Math.ceil(dataToWriteLength / chunklength)
-                        var last = nchunks - 1
-                        var chunks = []
-
-                        for (var i = 0; i < nchunks; i++) {
-                            var start = i * chunklength
-                            var end = start + chunklength
-                            var chunk = dataToWrite.substring(start, end)
-
-                            if (i === 0) {
-                                var startnext = (i + 1) * chunklength
-                                var endnext = startnext + chunklength
-                                var prevref = ''
-                                var nextref = dataToWrite.substring(startnext, endnext).substring(0, 3)
-                            } else if (i === last) {
-                                var startprev = (i - 1) * chunklength
-                                var endprev = startprev + chunklength
-                                var nextref = ''
-                                var prevref = dataToWrite.substr(startprev, endprev).substr(chunkdatalimit, 3)
-                            } else {
-                                var sni = i + 1
-                                var startnext = sni * chunklength
-                                var endnext = startnext + chunklength
-                                var nextref = dataToWrite.substring(startnext, endnext).substring(0, 3)
-                                var spi = i - 1
-                                var startprev = spi * chunklength
-                                var endprev = startprev + chunklength
-                                var prevref = dataToWrite.substr(startprev, endprev).substr(chunkdatalimit, 3)
-                            }
-                            chunk = prevref + chunk + nextref
-                            chunks.push(chunk)
+                        if (collection !== '') {
+                            collection = '!*!' + collection
+                        } else {
+                            collection = '!*!'
                         }
 
-                        var totalfees = 0
+                        if (refID !== '') {
+                            refID = '!*!' + refID
+                        } else {
+                            refID = '!*!'
+                        }
 
-                        for (var cix = 0; cix < chunks.length; cix++) {
+                        if (protocol !== '') {
+                            protocol = '!*!' + protocol
+                        } else {
+                            protocol = '!*!'
+                        }
+
+                        var dataToWrite = '*!*' + uuid + collection + refID + protocol + '*=>' + metadata + '*!*'
+                        if (dataToWrite.length <= MAX_OPRETURN) {
                             var txid = ''
                             var i = 0
-                            var rawtransaction
+                            var totalfees = 0
                             while (txid !== null && txid !== undefined && txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
-                                //console.log('STORING CHUNK #' + cix, chunks[cix])
-                                rawtransaction = await this.build(wallet, password, false, address, 0, chunks[cix], fees)
-                                txid = await this.sendRawTransaction(rawtransaction.signed)
-                                //console.log(txid)
-                                if (txid !== null && txid !== false && txid.length === 64) {
-                                    for (let i in rawtransaction.inputs) {
-                                        await this.pushTXIDtoCache(rawtransaction.inputs[i])
-                                    }
-                                    totalfees += fees
-                                    txs.push(txid)
-                                    //Storing UTXO to cache
-                                    var decoded = await this.decodeRawTransaction(rawtransaction.signed)
-                                    if (decoded.vout[0].scriptPubKey.addresses !== undefined) {
-                                        let unspent = {
-                                            txid: decoded.txid,
-                                            vout: 0,
-                                            address: decoded.vout[0].scriptPubKey.addresses[0],
-                                            scriptPubKey: decoded.vout[0].scriptPubKey.hex,
-                                            amount: decoded.vout[0].value
+                                var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
+                                // console.log(rawtransaction.signed)
+                                if (rawtransaction.signed !== false) {
+                                    txid = await this.sendRawTransaction(rawtransaction.signed)
+                                    if (txid !== null && txid !== false && txid.length === 64) {
+                                        totalfees += fees
+                                        for (let i in rawtransaction.inputs) {
+                                            await this.pushTXIDtoCache(rawtransaction.inputs[i])
                                         }
-                                        await this.pushUTXOtoCache(unspent)
+                                        //Storing UTXO to cache
+                                        var decoded = await this.decodeRawTransaction(rawtransaction.signed)
+                                        if (decoded.vout[0].scriptPubKey.addresses !== undefined) {
+                                            let unspent = {
+                                                txid: decoded.txid,
+                                                vout: 0,
+                                                address: decoded.vout[0].scriptPubKey.addresses[0],
+                                                scriptPubKey: decoded.vout[0].scriptPubKey.hex,
+                                                amount: decoded.vout[0].value
+                                            }
+                                            await this.pushUTXOtoCache(unspent)
+                                        }
                                     }
                                 } else {
                                     txid = null
                                 }
                                 i++;
                             }
+
+                            return Promise.resolve({
+                                uuid: uuid,
+                                address: wallet,
+                                fees: totalfees,
+                                collection: collection.replace('!*!', ''),
+                                refID: refID.replace('!*!', ''),
+                                protocol: protocol.replace('!*!', ''),
+                                dimension: dataToWrite.length,
+                                chunks: 1,
+                                stored: dataToWrite,
+                                txs: [txid]
+                            })
+
+                        } else {
+
+                            var txs = []
+                            var chunklength = MAX_OPRETURN - 6
+                            var chunkdatalimit = chunklength - 3
+                            var dataToWriteLength = dataToWrite.length
+                            var nchunks = Math.ceil(dataToWriteLength / chunklength)
+                            var last = nchunks - 1
+                            var chunks = []
+
+                            for (var i = 0; i < nchunks; i++) {
+                                var start = i * chunklength
+                                var end = start + chunklength
+                                var chunk = dataToWrite.substring(start, end)
+
+                                if (i === 0) {
+                                    var startnext = (i + 1) * chunklength
+                                    var endnext = startnext + chunklength
+                                    var prevref = ''
+                                    var nextref = dataToWrite.substring(startnext, endnext).substring(0, 3)
+                                } else if (i === last) {
+                                    var startprev = (i - 1) * chunklength
+                                    var endprev = startprev + chunklength
+                                    var nextref = ''
+                                    var prevref = dataToWrite.substr(startprev, endprev).substr(chunkdatalimit, 3)
+                                } else {
+                                    var sni = i + 1
+                                    var startnext = sni * chunklength
+                                    var endnext = startnext + chunklength
+                                    var nextref = dataToWrite.substring(startnext, endnext).substring(0, 3)
+                                    var spi = i - 1
+                                    var startprev = spi * chunklength
+                                    var endprev = startprev + chunklength
+                                    var prevref = dataToWrite.substr(startprev, endprev).substr(chunkdatalimit, 3)
+                                }
+                                chunk = prevref + chunk + nextref
+                                chunks.push(chunk)
+                            }
+
+                            var totalfees = 0
+
+                            for (var cix = 0; cix < chunks.length; cix++) {
+                                var txid = ''
+                                var i = 0
+                                var rawtransaction
+                                while (txid !== null && txid !== undefined && txid.length !== 64) {
+                                    var fees = 0.001 + (i / 1000)
+                                    //console.log('STORING CHUNK #' + cix, chunks[cix])
+                                    rawtransaction = await this.build(wallet, password, false, address, 0, chunks[cix], fees)
+                                    txid = await this.sendRawTransaction(rawtransaction.signed)
+                                    //console.log(txid)
+                                    if (txid !== null && txid !== false && txid.length === 64) {
+                                        for (let i in rawtransaction.inputs) {
+                                            await this.pushTXIDtoCache(rawtransaction.inputs[i])
+                                        }
+                                        totalfees += fees
+                                        txs.push(txid)
+                                        //Storing UTXO to cache
+                                        var decoded = await this.decodeRawTransaction(rawtransaction.signed)
+                                        if (decoded.vout[0].scriptPubKey.addresses !== undefined) {
+                                            let unspent = {
+                                                txid: decoded.txid,
+                                                vout: 0,
+                                                address: decoded.vout[0].scriptPubKey.addresses[0],
+                                                scriptPubKey: decoded.vout[0].scriptPubKey.hex,
+                                                amount: decoded.vout[0].value
+                                            }
+                                            await this.pushUTXOtoCache(unspent)
+                                        }
+                                    } else {
+                                        txid = null
+                                    }
+                                    i++;
+                                }
+                            }
+
+                            return Promise.resolve({
+                                uuid: uuid,
+                                address: wallet,
+                                fees: totalfees,
+                                collection: collection.replace('!*!', ''),
+                                refID: refID.replace('!*!', ''),
+                                protocol: protocol.replace('!*!', ''),
+                                dimension: dataToWrite.length,
+                                chunks: nchunks,
+                                stored: dataToWrite,
+                                txs: txs
+                            })
+
                         }
-
-                        return Promise.resolve({
-                            uuid: uuid,
-                            address: wallet,
-                            fees: totalfees,
-                            collection: collection.replace('!*!', ''),
-                            refID: refID.replace('!*!', ''),
-                            protocol: protocol.replace('!*!', ''),
-                            dimension: dataToWrite.length,
-                            chunks: nchunks,
-                            stored: dataToWrite,
-                            txs: txs
-                        })
-
+                    }else{
+                        return Promise.resolve(false);
                     }
-
                 } catch (error) {
                     console.log(error)
                     return Promise.resolve(false);
@@ -1207,14 +1204,10 @@ module.exports = class ScryptaCore {
             let node = nodes[x]
             let check = await app.checkNode(node)
             if (check !== false) {
-                // console.log('Bootstrap connection to ' + node)
-                if(this.isBrowser === true){
-                    global['nodes'][node] = require('socket.io-client')(node.replace('https://', 'https://p2p.'), { reconnect: true })
-                }else{
-                    global['nodes'][node] = require('socket.io-client')(node.replace('https', 'http') + ':' + this.portP2P, { reconnect: true })
-                }
+                console.log('Bootstrap connection to ' + node.replace('https://', 'https://p2p.'))
+                global['nodes'][node] = require('socket.io-client')(node.replace('https://', 'https://p2p.'), { reconnect: true })
                 global['nodes'][node].on('connect', function () {
-                    // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                    console.log('Connected to peer: ' + global['nodes'][node].io.uri)
                     global['connected'][node] = true
                 })
                 global['nodes'][node].on('disconnect', function () {
