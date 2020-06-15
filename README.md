@@ -13,6 +13,7 @@ To override the IdaNodes list you've to rewrite the array like this:
 ```
 let ScryptaCore = require('@scrypta/core')
 let scrypta = new ScryptaCore
+scrypta.staticnodes = true
 scrypta.mainnetIdaNodes = ['http://localhost:3001', 'https://anotheridanode.com']
 ```
 
