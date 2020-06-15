@@ -1208,7 +1208,11 @@ module.exports = class ScryptaCore {
             let check = await app.checkNode(node)
             if (check !== false) {
                 // console.log('Bootstrap connection to ' + node)
-                global['nodes'][node] = require('socket.io-client')(node.replace('https', 'http') + ':' + this.portP2P, { reconnect: true })
+                if(this.isBrowser === true){
+                    global['nodes'][node] = require('socket.io-client')(node.replace('https://', 'https://p2p.'), { reconnect: true })
+                }else{
+                    global['nodes'][node] = require('socket.io-client')(node.replace('https', 'http') + ':' + this.portP2P, { reconnect: true })
+                }
                 global['nodes'][node].on('connect', function () {
                     // console.log('Connected to peer: ' + global['nodes'][node].io.uri)
                     global['connected'][node] = true
