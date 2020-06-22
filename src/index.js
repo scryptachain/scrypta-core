@@ -35,6 +35,7 @@ module.exports = class ScryptaCore {
         this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.staticnodes = false
+        this.debug = false
         this.testnet = false
         this.portP2P = 42226
         this.sidechain = ''
@@ -352,6 +353,7 @@ module.exports = class ScryptaCore {
         })
     }
 
+    // DEPRECATED
     async cryptFile(file, password) {
         return new Promise(response => {
 
@@ -367,10 +369,11 @@ module.exports = class ScryptaCore {
         })
     }
 
+    // DEPRECATED
     async decryptFile(file, password) {
         return new Promise(response => {
             try {
-                let buf = Buffer(file)
+                let buf = Buffer(file, 'hex')
                 var decipher = crypto.createDecipher('aes-256-cbc', password)
                 var decrypted = Buffer.concat([decipher.update(buf), decipher.final()])
                 response(decrypted)
@@ -592,14 +595,21 @@ module.exports = class ScryptaCore {
                 var cache = await this.returnUTXOCache()
                 if (cache !== undefined && cache.length > 0) {
                     for (var x = 0; x < cache.length; x++) {
-                        unspent.push(cache[x])
+                        if(this.debug){
+                            console.log(cache[x])
+                        }
+                        if(cache[x].address === SIDS[0]){
+                            unspent.push(cache[x])
+                        }
                     }
                 }
                 var listunspent = await this.listUnspent(from)
                 for (var x = 0; x < listunspent.length; x++) {
                     unspent.push(listunspent[x])
                 }
-                // console.log('UNSPENT', unspent, unspent.length)
+                if(this.debug){
+                    console.log('UNSPENT', unspent, unspent.length)
+                }
                 if (unspent.length > 0) {
                     var inputamount = 0;
                     var amountneed = amount + fees;
@@ -641,6 +651,9 @@ module.exports = class ScryptaCore {
                             });
                         } else {
                             var txid = await this.sendRawTransaction(signed)
+                            if(this.debug){
+                                console.log(txid)
+                            }
                             if (txid !== null && txid.length === 64) {
                                 for (let i in inputs) {
                                     await this.pushTXIDtoCache(inputs[i])
@@ -654,7 +667,7 @@ module.exports = class ScryptaCore {
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
-                    //console.log('NO UNSPENTS')
+                    // console.log('NO UNSPENTS')
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
             } catch (error) {
@@ -972,13 +985,13 @@ module.exports = class ScryptaCore {
                             var txid = ''
                             var i = 0
                             var totalfees = 0
-                            while (txid !== null && txid !== undefined && txid.length !== 64) {
+                            while (txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
                                 var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
                                 // console.log(rawtransaction.signed)
                                 if (rawtransaction.signed !== false) {
                                     txid = await this.sendRawTransaction(rawtransaction.signed)
-                                    if (txid !== null && txid !== false && txid.length === 64) {
+                                    if (txid !== null && txid.length === 64) {
                                         totalfees += fees
                                         for (let i in rawtransaction.inputs) {
                                             await this.pushTXIDtoCache(rawtransaction.inputs[i])
@@ -995,9 +1008,9 @@ module.exports = class ScryptaCore {
                                             }
                                             await this.pushUTXOtoCache(unspent)
                                         }
+                                    }else{
+                                        txid = ''
                                     }
-                                } else {
-                                    txid = null
                                 }
                                 i++;
                             }
