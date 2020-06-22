@@ -328,7 +328,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async decryptData(data, password) {
+    async decryptData(data, password, buffer = false) {
         return new Promise(response => {
             try {
                 if(data.indexOf('*') === -1){
@@ -345,7 +345,11 @@ module.exports = class ScryptaCore {
                     let decipher = crypto.createDecipheriv('aes-256-ctr', key, iv)
                     let decrypted = decipher.update(encryptedText)
                     decrypted = Buffer.concat([decrypted, decipher.final()])
-                    response(decrypted.toString())
+                    if(buffer === false){
+                        response(decrypted.toString())
+                    }else{
+                        response(decrypted)
+                    }
                 }
             } catch (e) {
                 response(false)
@@ -623,6 +627,8 @@ module.exports = class ScryptaCore {
                                 trx.addinput(txid, index, script);
                                 inputamount += unspent[i]['amount']
                                 inputs.push(txid + ':' + index)
+                            }else if(this.debug){
+                                console.log('INPUT ALREADY IN CACHE ' + txid + ':' + index)
                             }
                         }
                     }
@@ -663,7 +669,7 @@ module.exports = class ScryptaCore {
                             }
                         }
                     } else {
-                        //console.log('NOT ENOUGH FUNDS')
+                        if(this.debug){ console.log('NOT ENOUGH FUNDS') }
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
@@ -692,6 +698,9 @@ module.exports = class ScryptaCore {
                             var fees = 0.001 + (i / 1000)
                             rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
                             txid = await this.sendRawTransaction(rawtransaction.signed)
+                            if(this.debug){
+                                console.log(rawtransaction, txid)
+                            }
                             if (txid !== null && txid !== false && txid.length === 64) {
                                 for (let i in rawtransaction.inputs) {
                                     await this.pushTXIDtoCache(rawtransaction.inputs[i])
@@ -988,9 +997,14 @@ module.exports = class ScryptaCore {
                             while (txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
                                 var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
-                                // console.log(rawtransaction.signed)
+                                if(this.debug){
+                                    console.log(rawtransaction.signed)
+                                }
                                 if (rawtransaction.signed !== false) {
                                     txid = await this.sendRawTransaction(rawtransaction.signed)
+                                    if(this.debug){
+                                        console.log(txid)
+                                    }
                                     if (txid !== null && txid.length === 64) {
                                         totalfees += fees
                                         for (let i in rawtransaction.inputs) {
