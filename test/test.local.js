@@ -6,7 +6,7 @@ const password = '123456'
 describe('Addresses', async function() {
     it('Should return all nodes', async function(){
         let nodes = await scrypta.returnNodes()
-        assert.equal(14, nodes.length);
+        assert.equal(16, nodes.length);
     })
     it('Address should be length 34 bytes', async function(){
         let address = await scrypta.createAddress(password, true)
