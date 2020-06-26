@@ -778,172 +778,176 @@ module.exports = class ScryptaCore {
         if (wallet !== false) {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
+                let decrypted
                 try {
-                    let decrypted = await this.decryptData(SIDS[1], password)
+                    decrypted = await this.decryptData(SIDS[1], password)
                     decrypted = JSON.parse(decrypted)
                 } catch (e) {
-                    return Promise.resolve(false)
+                    return false
                 }
+                if(decrypted.prv !== undefined){
+                    const address = SIDS[0]
+                    var sxid = ''
+                    let unspent = await app.listPlanumUnspent(address)
+                    let check_sidechain = await app.post('/sidechain/get', { sidechain_address: app.sidechain })
+                    let sidechainObj = check_sidechain.sidechain[0]
+                    const decimals = sidechainObj.data.genesis.decimals
+                    if (unspent.length > 0) {
+                        let inputs = []
+                        let outputs = {}
+                        let amountinput = 0
+                        amount = app.math.round(amount, decimals)
+                        let usedtx = []
+                        let checkto = await app.get('/validate/' + to)
+                        if (checkto.data.isvalid === false) {
+                            return Promise.resolve(false)
+                        }
 
-                const address = SIDS[0]
-                var sxid = ''
-                let unspent = await app.listPlanumUnspent(address)
-                let check_sidechain = await app.post('/sidechain/get', { sidechain_address: app.sidechain })
-                let sidechainObj = check_sidechain.sidechain[0]
-                const decimals = sidechainObj.data.genesis.decimals
-                if (unspent.length > 0) {
-                    let inputs = []
-                    let outputs = {}
-                    let amountinput = 0
-                    amount = app.math.round(amount, decimals)
-                    let usedtx = []
-                    let checkto = await app.get('/validate/' + to)
-                    if (checkto.data.isvalid === false) {
-                        return Promise.resolve(false)
-                    }
-
-                    for (let i in unspent) {
-                        if (amountinput < amount) {
-                            delete unspent[i]._id
-                            delete unspent[i].sidechain
-                            delete unspent[i].address
-                            delete unspent[i].block
-                            delete unspent[i].redeemblock
-                            delete unspent[i].redeemed
-                            let cache = await this.returnSXIDCache()
-                            if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
-                                inputs.push(unspent[i])
-                                usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
-                                let toadd = app.math.round(unspent[i].amount, decimals)
-                                amountinput = app.math.sum(amountinput, toadd)
-                                amountinput = app.math.round(amountinput, decimals)
+                        for (let i in unspent) {
+                            if (amountinput < amount) {
+                                delete unspent[i]._id
+                                delete unspent[i].sidechain
+                                delete unspent[i].address
+                                delete unspent[i].block
+                                delete unspent[i].redeemblock
+                                delete unspent[i].redeemed
+                                let cache = await this.returnSXIDCache()
+                                if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
+                                    inputs.push(unspent[i])
+                                    usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
+                                    let toadd = app.math.round(unspent[i].amount, decimals)
+                                    amountinput = app.math.sum(amountinput, toadd)
+                                    amountinput = app.math.round(amountinput, decimals)
+                                }
                             }
                         }
-                    }
 
-                    let totaloutputs = 0
-                    amountinput = app.math.round(amountinput, decimals)
-                    amount = app.math.round(amount, decimals)
-                    if (amountinput >= amount) {
+                        let totaloutputs = 0
+                        amountinput = app.math.round(amountinput, decimals)
+                        amount = app.math.round(amount, decimals)
+                        if (amountinput >= amount) {
 
-                        if (to === sidechainObj.address && sidechainObj.data.burnable === false) {
+                            if (to === sidechainObj.address && sidechainObj.data.burnable === false) {
 
-                            return Promise.resolve(false)
+                                return Promise.resolve(false)
 
-                        } else {
+                            } else {
 
-                            outputs[to] = amount
-                            totaloutputs = app.math.sum(totaloutputs, amount)
+                                outputs[to] = amount
+                                totaloutputs = app.math.sum(totaloutputs, amount)
 
-                            let change = app.math.subtract(amountinput, amount)
-                            change = app.math.round(change, decimals)
+                                let change = app.math.subtract(amountinput, amount)
+                                change = app.math.round(change, decimals)
 
-                            if (to !== address) {
-                                if (change > 0 && changeaddress === '') {
-                                    outputs[address] = change
-                                    totaloutputs = app.math.sum(totaloutputs, change)
-                                } else if (change > 0 && changeaddress !== '') {
-                                    // CHECK IF CHANGE ADDRESS IS VALID
-                                    let checkchange = await app.get('validate/' + change)
-                                    if (checkchange.data.isvalid === true) {
-                                        outputs[changeaddress] = change
-                                        totaloutputs = app.math.sum(totaloutputs, change)
-                                    } else {
-                                        // IF NOT, SEND TO MAIN ADDRESS
+                                if (to !== address) {
+                                    if (change > 0 && changeaddress === '') {
                                         outputs[address] = change
                                         totaloutputs = app.math.sum(totaloutputs, change)
-                                    }
-                                }
-                            } else {
-                                if (change > 0) {
-                                    outputs[address] = app.math.sum(change, amount)
-                                    outputs[address] = app.math.round(outputs[address], sidechainObj.data.genesis.decimals)
-                                    totaloutputs = app.math.sum(totaloutputs, change)
-                                }
-                            }
-
-                            totaloutputs = app.math.round(totaloutputs, sidechainObj.data.genesis.decimals)
-
-                            if (inputs.length > 0 && totaloutputs > 0) {
-                                let transaction = {}
-                                transaction["sidechain"] = app.sidechain
-                                transaction["inputs"] = inputs
-                                transaction["outputs"] = outputs
-                                transaction["memo"] = memo
-                                transaction["time"] = new Date().getTime()
-
-                                let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
-
-                                let tx = {
-                                    transaction: transaction,
-                                    signature: signtx.signature,
-                                    pubkey: decrypted.key,
-                                    sxid: signtx.hash
-                                }
-
-                                let validatetransaction = await app.post('/sidechain/validate',
-                                    {
-                                        transaction: tx,
-                                        address: address,
-                                        sxid: signtx.hash,
-                                        signature: signtx.signature,
-                                        pubkey: decrypted.key
-                                    }
-                                )
-
-                                if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
-                                    let sent = false
-                                    let txs = []
-                                    let retry = 0
-                                    while (sent === false) {
-                                        let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
-                                        if (written.txs.length >= 1 && written.txs[0] !== null) {
-                                            for (let x in usedtx) {
-                                                await app.pushSXIDtoCache(usedtx[x])
-                                            }
-                                            let vout = 0
-                                            for (let x in outputs) {
-                                                let unspent = {
-                                                    sxid: tx.sxid,
-                                                    vout: vout,
-                                                    address: x,
-                                                    amount: outputs[x],
-                                                    sidechain: tx.transaction['sidechain']
-                                                }
-                                                if (unspent.address === address) {
-                                                    await app.pushUSXOtoCache(unspent)
-                                                }
-                                                vout++
-                                            }
-                                            sent = true
-                                            txs = written.txs
+                                    } else if (change > 0 && changeaddress !== '') {
+                                        // CHECK IF CHANGE ADDRESS IS VALID
+                                        let checkchange = await app.get('validate/' + change)
+                                        if (checkchange.data.isvalid === true) {
+                                            outputs[changeaddress] = change
+                                            totaloutputs = app.math.sum(totaloutputs, change)
                                         } else {
-                                            retry++
-                                            await app.sleep(2000)
-                                        }
-                                        if (retry > 10) {
-                                            sent = true
+                                            // IF NOT, SEND TO MAIN ADDRESS
+                                            outputs[address] = change
+                                            totaloutputs = app.math.sum(totaloutputs, change)
                                         }
                                     }
-                                    if (txs.length >= 1) {
-                                        return Promise.resolve(tx.sxid)
+                                } else {
+                                    if (change > 0) {
+                                        outputs[address] = app.math.sum(change, amount)
+                                        outputs[address] = app.math.round(outputs[address], sidechainObj.data.genesis.decimals)
+                                        totaloutputs = app.math.sum(totaloutputs, change)
+                                    }
+                                }
+
+                                totaloutputs = app.math.round(totaloutputs, sidechainObj.data.genesis.decimals)
+
+                                if (inputs.length > 0 && totaloutputs > 0) {
+                                    let transaction = {}
+                                    transaction["sidechain"] = app.sidechain
+                                    transaction["inputs"] = inputs
+                                    transaction["outputs"] = outputs
+                                    transaction["memo"] = memo
+                                    transaction["time"] = new Date().getTime()
+
+                                    let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
+
+                                    let tx = {
+                                        transaction: transaction,
+                                        signature: signtx.signature,
+                                        pubkey: decrypted.key,
+                                        sxid: signtx.hash
+                                    }
+
+                                    let validatetransaction = await app.post('/sidechain/validate',
+                                        {
+                                            transaction: tx,
+                                            address: address,
+                                            sxid: signtx.hash,
+                                            signature: signtx.signature,
+                                            pubkey: decrypted.key
+                                        }
+                                    )
+
+                                    if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
+                                        let sent = false
+                                        let txs = []
+                                        let retry = 0
+                                        while (sent === false) {
+                                            let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
+                                            if (written.txs.length >= 1 && written.txs[0] !== null) {
+                                                for (let x in usedtx) {
+                                                    await app.pushSXIDtoCache(usedtx[x])
+                                                }
+                                                let vout = 0
+                                                for (let x in outputs) {
+                                                    let unspent = {
+                                                        sxid: tx.sxid,
+                                                        vout: vout,
+                                                        address: x,
+                                                        amount: outputs[x],
+                                                        sidechain: tx.transaction['sidechain']
+                                                    }
+                                                    if (unspent.address === address) {
+                                                        await app.pushUSXOtoCache(unspent)
+                                                    }
+                                                    vout++
+                                                }
+                                                sent = true
+                                                txs = written.txs
+                                            } else {
+                                                retry++
+                                                await app.sleep(2000)
+                                            }
+                                            if (retry > 10) {
+                                                sent = true
+                                            }
+                                        }
+                                        if (txs.length >= 1) {
+                                            return Promise.resolve(tx.sxid)
+                                        } else {
+                                            return Promise.resolve(false)
+                                        }
                                     } else {
                                         return Promise.resolve(false)
                                     }
+
                                 } else {
                                     return Promise.resolve(false)
                                 }
-
-                            } else {
-                                return Promise.resolve(false)
                             }
+                        } else {
+                            return Promise.resolve(false)
                         }
                     } else {
-                        return Promise.resolve(false)
+                        // console.log('NO UNSPENT')
+                        return false
                     }
-                } else {
-                    // console.log('NO UNSPENT')
-                    return Promise.resolve(false)
+                }else{
+                    return false
                 }
             } else {
                 return false
