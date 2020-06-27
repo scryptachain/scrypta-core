@@ -59,9 +59,9 @@ describe('Idanodes', async function() {
     it('Should GET first available IdaNode', function(){
         this.timeout(35000)
         return new Promise(async response => {
-            let getinfo = await scrypta.get('/wallet/getinfo')
-            if(getinfo.blocks !== undefined){
-                response(getinfo.blocks)
+            let getinfo = await scrypta.get('/wallet/getinfo', 'https://idanodejs09.scryptachain.org')
+            if(getinfo !== false){
+                response(getinfo)
             }
         })
     })

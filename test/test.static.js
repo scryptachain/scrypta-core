@@ -5,6 +5,7 @@ let scrypta = new ScryptaCore
 // SHOULD RETURN ALL IDANODES
 async function testnodes(){
    let nodes = await scrypta.returnNodes()
+   console.log('SHOULD RETURN ALL NODES')
    console.log(nodes)
 }
 testnodes()
@@ -12,6 +13,12 @@ testnodes()
 
 let password = '123456'
 scrypta.createAddress(password, true).then(async res => {
+    
+    // SHOULD GET AN IDANODE
+    console.log('SHOULD GET FIRST IDANODE')
+    let getinfo = await scrypta.get('/wallet/getinfo')
+    console.log(JSON.stringify(getinfo))
+
     // SHOULD RETURN THE WALLETSTORE
     console.log('CREATED NEW ADDRESS ' + res.pub)
     let walletstore = await scrypta.returnKey(res.pub)
@@ -24,18 +31,13 @@ scrypta.createAddress(password, true).then(async res => {
     let readKeyOld = await scrypta.readKey(password, oldwallet)
     console.log(readKeyOld)
     
-    // SHOULD GET AN IDANODE
-    console.log('SHOULD GET FIRST IDANODE')
-    let getinfo = await scrypta.get('/wallet/getinfo')
-    console.log(JSON.stringify(getinfo))
-
     // SHOULD POST AN IDANODE
     let init = await scrypta.post('/init',{address: res.pub})
     console.log(JSON.stringify(init))
 
     // SHOULD CONNECT TO ALL IDANODES
     console.log('SHOULD CONNECT TO ALL IDANODES WITH ADDRESS ' + res.pub)
-    scrypta.connectP2P(res.pub, password, function(received){
+    scrypta.connectP2P(function(received){
         console.log('Received ' + JSON.stringify(received))
     })
 

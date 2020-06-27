@@ -94,7 +94,7 @@ module.exports = class ScryptaCore {
             if (node === '') {
                 node = await app.connectNode()
             }
-            let res = await axios.post(node + endpoint, params).catch(err => { response(err) })
+            let res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { response("ERROR ON IDANODE " + node + ": " + err.message) })
             response(res.data)
         })
     }
@@ -105,9 +105,11 @@ module.exports = class ScryptaCore {
             if (node === '') {
                 node = await app.connectNode()
             }
-            let res = await axios.get(node + endpoint).catch(err => { response(err) })
+            let res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { response("ERROR ON IDANODE " + node + ": " + err.message) })
             if (res !== undefined) {
                 response(res.data)
+            }else{
+                response(false)
             }
         })
     }
