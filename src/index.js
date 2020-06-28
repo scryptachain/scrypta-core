@@ -1252,7 +1252,6 @@ module.exports = class ScryptaCore {
 
                     //PROTOCOLS
                     global['nodes'][node].on('message', async function (data) {
-                        console.log(data)
                         let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
                         if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
                             global['cache'].push(data.signature)
