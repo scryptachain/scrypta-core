@@ -84,7 +84,7 @@
                 isSigning = true
                 window.ScryptaCore.signMessage(privkey, message).then(response => {
                     document.getElementById('signresponse').innerHTML = JSON.stringify(response)
-                    window.ScryptaCore.verifyMessage(response.pubkey, response.signature, message).then(verification => {
+                    window.ScryptaCore.verifyMessage(response.pubKey, response.signature, message).then(verification => {
                         document.getElementById('verifyresponse').innerHTML = JSON.stringify(verification)
                         isSigning = false
                     })

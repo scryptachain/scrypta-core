@@ -351,7 +351,8 @@ export default class ScryptaCore {
         if(password !== ''){
             var SIDS = SID.split(':');
             try {
-                var decrypted = JSON.parse(this.decryptData(SIDS[1]), password)
+                let dec = await this.decryptData(SIDS[1], password)
+                var decrypted = JSON.parse(dec)
                 if(decrypted !== false){
                     var trx = Trx.transaction();
                     var from = SIDS[0]
@@ -430,7 +431,7 @@ export default class ScryptaCore {
                     return Promise.resolve(false) //WRONG PASSWORD
                 }
             } catch (error) {
-                //console.log(error)
+                console.log(error)
                 return Promise.resolve(false);
             }
         }
@@ -452,7 +453,7 @@ export default class ScryptaCore {
                 while(txid !== null && txid !== undefined && txid.length !== 64){
                     var fees = 0.001 + (i / 1000)
                     rawtransaction = await this.build(password,false,to,amount,metadata,fees,SID)
-                    //console.log(rawtransaction)
+                    // console.log(rawtransaction)
                     txid = await this.sendRawTransaction(rawtransaction.signed)
                     //console.log(txid)
                     if(txid !== null && txid !== false && txid.length === 64){
@@ -493,7 +494,7 @@ export default class ScryptaCore {
             }
             var SIDS = SID.split(':');
             var MAX_OPRETURN = 7500
-            let dec = this.decryptData(SIDS[1], password)
+            let dec = await this.decryptData(SIDS[1], password)
             if(dec !== false){
                 var wallet = SIDS[0]
                 
