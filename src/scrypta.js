@@ -290,17 +290,9 @@ export default class ScryptaCore {
             var SID = key;
         }
         if(password !== ''){
-            var SIDS = SID.split(':');
-            try {
-                var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(SIDS[1],'hex','utf8');
-                dec += decipher.final('utf8');
-                var decrypted = JSON.parse(dec);
-                return Promise.resolve(decrypted);
-            } catch (ex) {
-                //console.log('WRONG PASSWORD')
-                return Promise.resolve(false);
-            }
+            var SIDS = SID.split(':')
+            let decrypted = await this.decryptData(SIDS[1], password)
+            return Promise.resolve(decrypted)
         }
     }
 
