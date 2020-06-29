@@ -129,7 +129,7 @@ export default class ScryptaCore {
         })
     }
 
-    async decryptData(data, password, buffer = false) {
+    static async decryptData(data, password, buffer = false) {
         return new Promise(response => {
             try {
                 if(data.indexOf('*') === -1){
