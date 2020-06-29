@@ -292,7 +292,11 @@ export default class ScryptaCore {
         if(password !== ''){
             var SIDS = SID.split(':')
             let decrypted = await this.decryptData(SIDS[1], password)
-            return Promise.resolve(decrypted)
+            try{
+                return Promise.resolve(JSON.parse(decrypted))
+            }catch(e){
+                return Promise.resolve(false)
+            }
         }
     }
 
