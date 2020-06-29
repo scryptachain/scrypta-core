@@ -718,7 +718,7 @@ export default class ScryptaCore {
                 message: message,
                 hash: hash.toString(CryptoJS.enc.Hex),
                 signature: sigObj.signature.toString('hex'),
-                pubkey: pubKey.toString('hex'),
+                pubKey: pubKey.toString('hex'),
                 address: ck.publicAddress
             })
         })
