@@ -30,7 +30,7 @@ export default class ScryptaCore {
 
     //IDANODE FUNCTIONS
     static returnNodes(){
-        let mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org']
+        let mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
         let testnetIdaNodes = ['https://testnet.scryptachain.org']
         if(this.testnet === true){
             return testnetIdaNodes
@@ -129,14 +129,30 @@ export default class ScryptaCore {
         })
     }
 
-    static async decryptData(data, password){
+    async decryptData(data, password, buffer = false) {
         return new Promise(response => {
-            try{
-                var decipher = crypto.createDecipher('aes-256-cbc', password)
-                var dec = decipher.update(data,'hex','utf8')
-                dec += decipher.final('utf8')
-                response(JSON.parse(dec))
-            }catch(e){
+            try {
+                if(data.indexOf('*') === -1){
+                    // MAINTAIN FALLBACK TO OLD ENCRYPTED WALLETS
+                    var decipher = crypto.createDecipher('aes-256-cbc', password)
+                    var dec = decipher.update(data, 'hex', 'utf8')
+                    dec += decipher.final('utf8')
+                    response(dec)
+                }else{
+                    let textParts = data.split('*');
+                    let iv = Buffer.from(textParts.shift(), 'hex')
+                    let encryptedText = Buffer.from(textParts.join('*'), 'hex')
+                    let key = crypto.createHash('sha256').update(String(password)).digest('base64').substr(0, 32)
+                    let decipher = crypto.createDecipheriv('aes-256-ctr', key, iv)
+                    let decrypted = decipher.update(encryptedText)
+                    decrypted = Buffer.concat([decrypted, decipher.final()])
+                    if(buffer === false){
+                        response(decrypted.toString())
+                    }else{
+                        response(decrypted)
+                    }
+                }
+            } catch (e) {
                 response(false)
             }
         })
@@ -180,9 +196,6 @@ export default class ScryptaCore {
         var ck = new CoinKey.createRandom(params)
         
         // SIMMETRIC KEY
-        var buf = crypto.randomBytes(16);
-        var api_secret = buf.toString('hex');
-        
         var lyrapub = ck.publicAddress;
         var lyraprv = ck.privateWif;
         var lyrakey = ck.publicKey.toString('hex');
@@ -190,7 +203,6 @@ export default class ScryptaCore {
         // STORE JUST LYRA WALLET 
         var wallet = {
             prv: lyraprv,
-            api_secret: api_secret,
             key: lyrakey
         }
 
@@ -198,7 +210,6 @@ export default class ScryptaCore {
         
         var response = {
             pub: lyrapub,
-            api_secret: api_secret,
             key: lyrakey,
             prv: lyraprv,
             walletstore: walletstore
