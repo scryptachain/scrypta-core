@@ -39,6 +39,9 @@
     <script>
         function getNewAddress(){
             window.ScryptaCore.createAddress('test').then(response => {
+                window.ScryptaCore.readKey('test', response.walletstore).then(readed => {
+                    console.log(readed)
+                })
                 document.getElementById('newaddressresponse').innerHTML = JSON.stringify(response)
             })
         }
