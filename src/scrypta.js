@@ -351,83 +351,83 @@ export default class ScryptaCore {
         if(password !== ''){
             var SIDS = SID.split(':');
             try {
-                var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(SIDS[1],'hex','utf8');
-                dec += decipher.final('utf8');
-                var decrypted = JSON.parse(dec);
-
-                var trx = Trx.transaction();
-                var from = SIDS[0]
-                var unspent = []
-                var inputs = []
-                var cache = await this.returnUTXOCache()
-                //console.log('CACHE', cache)
-                if(cache.length > 0){
-                    for(var x = 0; x < cache.length; x++){
-                        unspent.push(cache[x])
-                    }
-                }
-                var listunspent = await this.listUnspent(from)
-                for(var x = 0; x < listunspent.length; x++){
-                    unspent.push(listunspent[x])
-                }
-                //console.log('UNSPENT', unspent)
-                if(unspent.length > 0){
-                    var inputamount = 0;
-                    var amountneed = amount + fees;
-                    for (var i=0; i < unspent.length; i++){
-                        if(inputamount <= amountneed){
-                            var txid = unspent[i]['txid'];
-                            var index = unspent[i]['vout'];
-                            var script = unspent[i]['scriptPubKey'];
-                            var cache = await this.returnTXIDCache()
-                            if(cache.indexOf(txid + ':' + index) === -1 && inputs.indexOf(txid + ':' + index) === -1){
-                                trx.addinput(txid,index,script);
-                                inputamount += unspent[i]['amount']
-                                inputs.push(txid + ':' + index)
-                            }
+                var decrypted = JSON.parse(this.decryptData(SIDS[1]), password)
+                if(decrypted !== false){
+                    var trx = Trx.transaction();
+                    var from = SIDS[0]
+                    var unspent = []
+                    var inputs = []
+                    var cache = await this.returnUTXOCache()
+                    //console.log('CACHE', cache)
+                    if(cache.length > 0){
+                        for(var x = 0; x < cache.length; x++){
+                            unspent.push(cache[x])
                         }
                     }
-                    if(inputamount >= amountneed){
-                        var change = inputamount - amountneed;
-                        if(amount > 0.00001){
-                            trx.addoutput(to,amount);
-                        }
-                        if(change > 0.00001){
-                            trx.addoutput(from,change);
-                        }
-                        if(metadata !== ''){
-                            if(metadata.length <= MAX_OPRETURN){
-                                //console.log('ADDING METADATA TO TX', metadata)
-                                trx.addmetadata(metadata);
-                            }else{
-                                //console.log('METADATA TOO LONG')
-                            }
-                        }
-                        var wif = decrypted.prv;
-                        var signed = trx.sign(wif,1);
-                        if(send === false){
-                            return Promise.resolve({
-                                inputs: inputs,
-                                signed: signed
-                            });
-                        } else {
-                            var txid = await this.sendRawTransaction(signed)
-                            if(txid !== null && txid.length === 64){
-                                for(let i in inputs){
-                                    await this.pushTXIDtoCache(inputs[i])
+                    var listunspent = await this.listUnspent(from)
+                    for(var x = 0; x < listunspent.length; x++){
+                        unspent.push(listunspent[x])
+                    }
+                    //console.log('UNSPENT', unspent)
+                    if(unspent.length > 0){
+                        var inputamount = 0;
+                        var amountneed = amount + fees;
+                        for (var i=0; i < unspent.length; i++){
+                            if(inputamount <= amountneed){
+                                var txid = unspent[i]['txid'];
+                                var index = unspent[i]['vout'];
+                                var script = unspent[i]['scriptPubKey'];
+                                var cache = await this.returnTXIDCache()
+                                if(cache.indexOf(txid + ':' + index) === -1 && inputs.indexOf(txid + ':' + index) === -1){
+                                    trx.addinput(txid,index,script);
+                                    inputamount += unspent[i]['amount']
+                                    inputs.push(txid + ':' + index)
                                 }
-                                //console.log("TX SENT: " + txid)
-                                return Promise.resolve(txid)
                             }
                         }
-                    }else{
-                        //console.log('NOT ENOUGH FUNDS')
+                        if(inputamount >= amountneed){
+                            var change = inputamount - amountneed;
+                            if(amount > 0.00001){
+                                trx.addoutput(to,amount);
+                            }
+                            if(change > 0.00001){
+                                trx.addoutput(from,change);
+                            }
+                            if(metadata !== ''){
+                                if(metadata.length <= MAX_OPRETURN){
+                                    //console.log('ADDING METADATA TO TX', metadata)
+                                    trx.addmetadata(metadata);
+                                }else{
+                                    //console.log('METADATA TOO LONG')
+                                }
+                            }
+                            var wif = decrypted.prv;
+                            var signed = trx.sign(wif,1);
+                            if(send === false){
+                                return Promise.resolve({
+                                    inputs: inputs,
+                                    signed: signed
+                                });
+                            } else {
+                                var txid = await this.sendRawTransaction(signed)
+                                if(txid !== null && txid.length === 64){
+                                    for(let i in inputs){
+                                        await this.pushTXIDtoCache(inputs[i])
+                                    }
+                                    //console.log("TX SENT: " + txid)
+                                    return Promise.resolve(txid)
+                                }
+                            }
+                        }else{
+                            //console.log('NOT ENOUGH FUNDS')
+                            return Promise.resolve(false) //NOT ENOUGH FUNDS
+                        }
+                    } else {
+                        //console.log('NO UNSPENTS')
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
-                } else {
-                    //console.log('NO UNSPENTS')
-                    return Promise.resolve(false) //NOT ENOUGH FUNDS
+                }else{
+                    return Promise.resolve(false) //WRONG PASSWORD
                 }
             } catch (error) {
                 //console.log(error)
@@ -444,11 +444,8 @@ export default class ScryptaCore {
         }
         if(password !== '' && to !== ''){
             var SIDS = SID.split(':');
-            try {
-                var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(SIDS[1],'hex','utf8');
-                dec += decipher.final('utf8');
-
+            let dec = await this.decryptData(SIDS[1], password)
+            if(dec !== false){
                 var txid = ''
                 var i = 0
                 var rawtransaction
@@ -480,7 +477,7 @@ export default class ScryptaCore {
                     i++;
                 }
                 return Promise.resolve(txid)
-            }catch(e){
+            }else{
                 return Promise.resolve(false)
             }
         }
@@ -496,12 +493,8 @@ export default class ScryptaCore {
             }
             var SIDS = SID.split(':');
             var MAX_OPRETURN = 7500
-            try {
-                //console.log('WRITING TO BLOCKCHAIN')
-                var decipher = crypto.createDecipher('aes-256-cbc', password);
-                var dec = decipher.update(SIDS[1],'hex','utf8');
-                dec += decipher.final('utf8');
-                
+            let dec = this.decryptData(SIDS[1], password)
+            if(dec !== false){
                 var wallet = SIDS[0]
                 
                 if(uuid === ''){
@@ -666,8 +659,7 @@ export default class ScryptaCore {
 
                 }
 
-            } catch (error) {
-                console.log(error)
+            } else{
                 return Promise.resolve(false);
             }
         }
