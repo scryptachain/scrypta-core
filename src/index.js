@@ -97,13 +97,13 @@ module.exports = class ScryptaCore {
             }
             let res
             try{
-                res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { 
+                res = await axios.post(node + endpoint, params, { timeout: 20000 }).catch(err => { 
                     console.log("ERROR ON IDANODE " + node + ": " + err.message) 
                     response(false)
                 })
             }catch(e){
                 node = await app.connectNode()
-                res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { 
+                res = await axios.post(node + endpoint, params, { timeout: 20000 }).catch(err => { 
                     console.log("ERROR ON IDANODE " + node + ": " + err.message) 
                     response(false)
                 })
@@ -120,13 +120,13 @@ module.exports = class ScryptaCore {
             }
             let res
             try{
-                res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
+                res = await axios.get(node + endpoint, { timeout: 20000 }).catch(err => { 
                     console.log("ERROR ON IDANODE " + node + ": " + err.message) 
                     response(false) 
                 })
             }catch(e){
                 node = await app.connectNode()
-                res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
+                res = await axios.get(node + endpoint, { timeout: 20000 }).catch(err => { 
                     console.log("ERROR ON IDANODE " + node + ": " + err.message) 
                     response(false) 
                 })
@@ -145,7 +145,7 @@ module.exports = class ScryptaCore {
 
     async checkNode(node) {
         return new Promise(response => {
-            axios.get(node + '/wallet/getinfo', { timeout: 10000 }).catch(err => {
+            axios.get(node + '/wallet/getinfo', { timeout: 20000 }).catch(err => {
                 response(false)
             }).then(result => {
                 response(result)
@@ -223,7 +223,7 @@ module.exports = class ScryptaCore {
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
-                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 10000 }).then(async check => {
+                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 20000 }).then(async check => {
                         let checksum = await app.returnLastChecksum(check.data.version)
                         let isValid = true
                         if (checksum !== false) {
@@ -237,6 +237,8 @@ module.exports = class ScryptaCore {
                                 response(check.config.url.replace('/wallet/getinfo', ''))
                             }
                         }
+                    }).catch(err => {
+                        response(false)
                     })
                 } catch (err) {
                     // console.log(err)
@@ -576,23 +578,17 @@ module.exports = class ScryptaCore {
         const app = this
         const node = await app.connectNode();
         var unspent = await app.get('/unspent/' + address)
-        return unspent.data.unspent
+        return unspent.unspent
     }
 
     async sendRawTransaction(rawtransaction) {
         const app = this
-        const node = await app.connectNode();
-        if (node !== undefined && rawtransaction !== undefined) {
-            var txid = await app.post(
-                '/sendrawtransaction',
-                { rawtransaction: rawtransaction }
-            ).catch(function (err) {
-                console.log(err)
-            })
-            return txid.data.data
-        } else {
-            return Promise.resolve(false)
-        }
+        var txid = await app.post('/sendrawtransaction',
+            { rawtransaction: rawtransaction }
+        ).catch(function (err) {
+            console.log(err)
+        })
+        return txid.data
     }
 
     async decodeRawTransaction(rawtransaction) {
@@ -704,7 +700,7 @@ module.exports = class ScryptaCore {
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
             } catch (error) {
-                //console.log(error)
+                console.log(error)
                 return Promise.resolve(false);
             }
         }
@@ -724,6 +720,9 @@ module.exports = class ScryptaCore {
                         while (txid !== null && txid !== undefined && txid.length !== 64) {
                             var fees = 0.001 + (i / 1000)
                             rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
+                            if(rawtransaction === false){
+                                Promise.resolve(false)
+                            }
                             txid = await this.sendRawTransaction(rawtransaction.signed)
                             if(this.debug){
                                 console.log(rawtransaction, txid)
@@ -1439,7 +1438,7 @@ module.exports = class ScryptaCore {
                 let identities = app.post('/read', { dapp_address: address, protocol: 'I://' }).catch(err => {
                     response(err)
                 })
-                response(identities.data.data)
+                response(identities.data)
             } else {
                 response(false)
             }
