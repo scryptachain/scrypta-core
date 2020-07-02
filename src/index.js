@@ -105,7 +105,10 @@ module.exports = class ScryptaCore {
             if (node === '') {
                 node = await app.connectNode()
             }
-            let res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { response("ERROR ON IDANODE " + node + ": " + err.message) })
+            let res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
+                console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                response(false) 
+            })
             if (res !== undefined) {
                 response(res.data)
             }else{
