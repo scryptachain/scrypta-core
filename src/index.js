@@ -9,6 +9,7 @@ const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa');
 const { sum, round, subtract } = require('mathjs')
+const { captureRejectionSymbol } = require('events')
 
 const lyraInfo = {
     mainnet: {
@@ -94,7 +95,19 @@ module.exports = class ScryptaCore {
             if (node === '') {
                 node = await app.connectNode()
             }
-            let res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { response("ERROR ON IDANODE " + node + ": " + err.message) })
+            let res
+            try{
+                res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                    response(false)
+                })
+            }catch(e){
+                node = await app.connectNode()
+                res = await axios.post(node + endpoint, params, { timeout: 10000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                    response(false)
+                })
+            }
             response(res.data)
         })
     }
@@ -105,10 +118,19 @@ module.exports = class ScryptaCore {
             if (node === '') {
                 node = await app.connectNode()
             }
-            let res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
-                console.log("ERROR ON IDANODE " + node + ": " + err.message) 
-                response(false) 
-            })
+            let res
+            try{
+                res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                    response(false) 
+                })
+            }catch(e){
+                node = await app.connectNode()
+                res = await axios.get(node + endpoint, { timeout: 10000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                    response(false) 
+                })
+            }
             if (res !== undefined) {
                 response(res.data)
             }else{
