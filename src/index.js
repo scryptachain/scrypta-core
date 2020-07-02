@@ -120,7 +120,7 @@ module.exports = class ScryptaCore {
 
     async checkNode(node) {
         return new Promise(response => {
-            axios.get(node + '/wallet/getinfo').catch(err => {
+            axios.get(node + '/wallet/getinfo', { timeout: 10000 }).catch(err => {
                 response(false)
             }).then(result => {
                 response(result)
@@ -198,7 +198,7 @@ module.exports = class ScryptaCore {
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
-                    axios.get(checknodes[i] + '/wallet/getinfo').then(async check => {
+                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 10000 }).then(async check => {
                         let checksum = await app.returnLastChecksum(check.data.version)
                         let isValid = true
                         if (checksum !== false) {
@@ -550,7 +550,7 @@ module.exports = class ScryptaCore {
     async listUnspent(address) {
         const app = this
         const node = await app.connectNode();
-        var unspent = await axios.get(node + '/unspent/' + address)
+        var unspent = await app.get('/unspent/' + address)
         return unspent.data.unspent
     }
 
@@ -558,8 +558,8 @@ module.exports = class ScryptaCore {
         const app = this
         const node = await app.connectNode();
         if (node !== undefined && rawtransaction !== undefined) {
-            var txid = await axios.post(
-                node + '/sendrawtransaction',
+            var txid = await app.post(
+                '/sendrawtransaction',
                 { rawtransaction: rawtransaction }
             ).catch(function (err) {
                 console.log(err)
