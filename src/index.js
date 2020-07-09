@@ -1232,7 +1232,7 @@ module.exports = class ScryptaCore {
                 message: message,
                 hash: hash.toString(CryptoJS.enc.Hex),
                 signature: sigObj.signature.toString('hex'),
-                pubKey: pubKey.toString('hex'),
+                pubkey: pubKey.toString('hex'),
                 address: ck.publicAddress
             })
         })
@@ -1297,7 +1297,7 @@ module.exports = class ScryptaCore {
                                     await db.put('messages', {
                                         signature: data.signature,
                                         message: data.message,
-                                        pubKey: data.pubKey,
+                                        pubkey: data.pubKey,
                                         address: data.address
                                     }).catch(err => {
                                         // console.log(err)
