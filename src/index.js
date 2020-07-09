@@ -158,21 +158,33 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             if (app.idanode === '') {
                 let connected = false
+                if(app.debug === true){
+                    console.log('CONNECTING TO ' + app.idanode)
+                }
                 while (connected === false) {
                     let node = await this.returnFirstNode()
                     if (node !== false) {
                         connected = true
                         app.idanode = node
+                        if(app.debug === true){
+                            console.log('CONNECTED TO ' + app.idanode)
+                        }
                         response(node)
                     }
                 }
             } else {
                 let check = await app.checkNode(app.idanode)
-                if (check !== false && check.data.toindex === 0) {
+                if (check !== false && check.data.toindex <= 1) {
+                    if(app.debug === true){
+                        console.log('CONNECTED IDANODE ' + app.idanode + ' STILL VALID')
+                    }
                     response(app.idanode)
                 } else {
                     app.idanode = ''
                     let connected = false
+                    if(app.debug === true){
+                        console.log('CONNECTED IDANODE ' + app.idanode + ' NOT VALID ANYMORE, CONNECTING TO NEW IDANODE')
+                    }
                     while (connected === false) {
                         let node = await this.returnFirstNode()
                         if (node !== false) {
