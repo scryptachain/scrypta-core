@@ -1036,6 +1036,7 @@ module.exports = class ScryptaCore {
                             var txid = ''
                             var i = 0
                             var totalfees = 0
+                            var retries = 0
                             while (txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
                                 var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
@@ -1069,20 +1070,28 @@ module.exports = class ScryptaCore {
                                     }
                                 }
                                 i++;
+                                retries ++;
+                                if(retries > 9){
+                                    txid = '0000000000000000000000000000000000000000000000000000000000000000'
+                                }
                             }
 
-                            return Promise.resolve({
-                                uuid: uuid,
-                                address: wallet,
-                                fees: totalfees,
-                                collection: collection.replace('!*!', ''),
-                                refID: refID.replace('!*!', ''),
-                                protocol: protocol.replace('!*!', ''),
-                                dimension: dataToWrite.length,
-                                chunks: 1,
-                                stored: dataToWrite,
-                                txs: [txid]
-                            })
+                            if(txid !== '0000000000000000000000000000000000000000000000000000000000000000'){
+                                return Promise.resolve({
+                                    uuid: uuid,
+                                    address: wallet,
+                                    fees: totalfees,
+                                    collection: collection.replace('!*!', ''),
+                                    refID: refID.replace('!*!', ''),
+                                    protocol: protocol.replace('!*!', ''),
+                                    dimension: dataToWrite.length,
+                                    chunks: 1,
+                                    stored: dataToWrite,
+                                    txs: [txid]
+                                })
+                            }else{
+                                return Promise.resolve(false)
+                            }
 
                         } else {
 
