@@ -1030,7 +1030,7 @@ module.exports = class ScryptaCore {
                         } else {
                             protocol = '!*!'
                         }
-
+                        metadata = metadata.normalize("NFD").replace(/[^\x00-\x7F]/g, "")
                         var dataToWrite = '*!*' + uuid + collection + refID + protocol + '*=>' + metadata + '*!*'
                         if (dataToWrite.length <= MAX_OPRETURN) {
                             var txid = ''
