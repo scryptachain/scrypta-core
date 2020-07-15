@@ -84,7 +84,11 @@ module.exports = class ScryptaCore {
                     }
                 }
             } else {
-                response(app.mainnetIdaNodes)
+                if(this.testnet === false){
+                    response(app.mainnetIdaNodes)
+                }else{
+                    response(app.testnetIdaNodes)
+                }
             }
         })
     }
