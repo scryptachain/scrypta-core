@@ -936,7 +936,7 @@ module.exports = class ScryptaCore {
                                         let retry = 0
                                         while (sent === false) {
                                             let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
-                                            if (written.txs.length >= 1 && written.txs[0] !== null) {
+                                            if (written !== false && written.txs !== undefined && written.txs.length >= 1 && written.txs[0] !== null) {
                                                 for (let x in usedtx) {
                                                     await app.pushSXIDtoCache(usedtx[x])
                                                 }
