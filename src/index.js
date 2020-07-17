@@ -163,7 +163,7 @@ module.exports = class ScryptaCore {
             if (app.idanode === '') {
                 let connected = false
                 if(app.debug === true){
-                    console.log('CONNECTING TO ' + app.idanode)
+                    console.log('CONNECTING TO FIRST AVAILABLE IDANODE')
                 }
                 while (connected === false) {
                     let node = await this.returnFirstNode()
