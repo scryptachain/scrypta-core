@@ -12,7 +12,7 @@ module.exports = class ScryptaDB {
     loadBrowserDB(){
         const db = this
         return new Promise(response => {
-            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages","identity"]
+            const collections = ["wallet","sxidcache","usxocache","txidcache","utxocache","nodes","checksums","messages","identity","settings"]
             for(let x in collections){
                 if (localStorage.getItem(collections[x]) !== null) {
                     db.data[collections[x]] = JSON.parse(localStorage.getItem(collections[x]))
