@@ -1302,7 +1302,7 @@ module.exports = class ScryptaCore {
                         })
 
                         //PROTOCOLS
-                        global['nodes'][node].on('message', async function (data) {ù
+                        global['nodes'][node].on('message', async function (data) {
                             if(data.pubkey === undefined && data.pubKey !== undefined){
                                 data.pubkey = data.pubKey
                             }
