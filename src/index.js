@@ -10,6 +10,7 @@ const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa');
 const { sum, round, subtract } = require('mathjs')
 const { captureRejectionSymbol } = require('events')
+const { isUndefined } = require('lodash')
 
 const lyraInfo = {
     mainnet: {
@@ -1301,8 +1302,11 @@ module.exports = class ScryptaCore {
                         })
 
                         //PROTOCOLS
-                        global['nodes'][node].on('message', async function (data) {
-                            let verified = await app.verifyMessage(data.pubKey, data.signature, data.message)
+                        global['nodes'][node].on('message', async function (data) {ù
+                            if(data.pubkey === undefined && data.pubKey !== undefined){
+                                data.pubkey = data.pubKey
+                            }
+                            let verified = await app.verifyMessage(data.pubkey, data.signature, data.message)
                             if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
                                 global['cache'].push(data.signature)
                                 let check = await db.get('messages', 'signature', data.signature)
