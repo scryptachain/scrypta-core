@@ -114,7 +114,13 @@ module.exports = class ScryptaCore {
                     response(false)
                 })
             }
-            response(res.data)
+            
+            if(res !== undefined && res.data !== undefined){
+                response(res.data)
+            }else{
+                console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                response(false)
+            }
         })
     }
 
@@ -137,7 +143,7 @@ module.exports = class ScryptaCore {
                     response(false) 
                 })
             }
-            if (res !== undefined) {
+            if (res !== undefined && res.data !== undefined) {
                 response(res.data)
             }else{
                 response(false)
