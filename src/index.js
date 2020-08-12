@@ -230,7 +230,6 @@ module.exports = class ScryptaCore {
                         }
                     }
                 } catch (e) {
-                    console.log(e)
                     response(false)
                 }
             } else {
@@ -610,7 +609,9 @@ module.exports = class ScryptaCore {
         var txid = await app.post('/sendrawtransaction',
             { rawtransaction: rawtransaction }
         ).catch(function (err) {
-            console.log(err)
+            txid = await app.post('/sendrawtransaction',
+                { rawtransaction: rawtransaction }
+            )
         })
         return txid.data
     }
@@ -623,7 +624,7 @@ module.exports = class ScryptaCore {
                 node + '/decoderawtransaction',
                 { rawtransaction: rawtransaction }
             ).catch(function (err) {
-                console.log(err)
+                // console.log(err)
             })
             return transaction.data.transaction
         } else {
@@ -726,7 +727,7 @@ module.exports = class ScryptaCore {
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
             } catch (error) {
-                console.log(error)
+                // console.log(error)
                 return Promise.resolve(false);
             }
         }
@@ -1201,7 +1202,7 @@ module.exports = class ScryptaCore {
                         return Promise.resolve(false);
                     }
                 } catch (error) {
-                    console.log(error)
+                    // console.log(error)
                     return Promise.resolve(false);
                 }
             } else {
