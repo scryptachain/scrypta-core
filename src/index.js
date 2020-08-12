@@ -38,6 +38,7 @@ module.exports = class ScryptaCore {
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.staticnodes = false
         this.debug = false
+        this.MAX_OPRETURN = 7500
         this.testnet = false
         this.portP2P = 42226
         this.sidechain = ''
@@ -626,7 +627,7 @@ module.exports = class ScryptaCore {
 
     async build(key, password, send = false, to, amount, metadata = '', fees = 0.001) {
         var SID = key;
-        var MAX_OPRETURN = 7500
+        var MAX_OPRETURN = this.MAX_OPRETURN
         if (password !== '') {
             var SIDS = SID.split(':');
             try {
@@ -1006,7 +1007,7 @@ module.exports = class ScryptaCore {
             let wallet = await this.returnKey(key)
             if (wallet !== false) {
                 var SIDS = wallet.split(':');
-                var MAX_OPRETURN = 7500
+                var MAX_OPRETURN = this.MAX_OPRETURN
                 try {
                     //console.log('WRITING TO BLOCKCHAIN')
                     let decrypted = await this.decryptData(SIDS[1], password)
