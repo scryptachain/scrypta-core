@@ -103,14 +103,14 @@ module.exports = class ScryptaCore {
             }
             let res
             try{
-                res = await axios.post(node + endpoint, params, { timeout: 20000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node) 
                     response(false)
                 })
             }catch(e){
                 node = await app.connectNode()
-                res = await axios.post(node + endpoint, params, { timeout: 20000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node) 
                     response(false)
                 })
             }
@@ -118,7 +118,7 @@ module.exports = class ScryptaCore {
             if(res !== undefined && res.data !== undefined){
                 response(res.data)
             }else{
-                console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                console.log("ERROR ON IDANODE " + node) 
                 response(false)
             }
         })
@@ -132,14 +132,14 @@ module.exports = class ScryptaCore {
             }
             let res
             try{
-                res = await axios.get(node + endpoint, { timeout: 20000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node) 
                     response(false) 
                 })
             }catch(e){
                 node = await app.connectNode()
-                res = await axios.get(node + endpoint, { timeout: 20000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node + ": " + err.message) 
+                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => { 
+                    console.log("ERROR ON IDANODE " + node) 
                     response(false) 
                 })
             }
