@@ -608,7 +608,7 @@ module.exports = class ScryptaCore {
         const app = this
         var txid = await app.post('/sendrawtransaction',
             { rawtransaction: rawtransaction }
-        ).catch(function (err) {
+        ).catch(async function (err) {
             txid = await app.post('/sendrawtransaction',
                 { rawtransaction: rawtransaction }
             )
