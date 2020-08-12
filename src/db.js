@@ -35,7 +35,11 @@ module.exports = class ScryptaDB {
             }
             for(let x in collections){
                 if (db.fs.existsSync(db.dir + '/' + collections[x] + '.json')) {
-                    db.data[collections[x]] = JSON.parse(db.fs.readFileSync(db.dir + '/' + collections[x] + '.json'))
+                    try{
+                        db.data[collections[x]] = JSON.parse(db.fs.readFileSync(db.dir + '/' + collections[x] + '.json'))
+                    }catch(e){
+                        console.log('ERROR WHILE LOADING DB')
+                    }
                 }else{
                     db.data[collections[x]] = []
                     db.fs.writeFileSync(db.dir + '/' + collections[x] + '.json', '[]')

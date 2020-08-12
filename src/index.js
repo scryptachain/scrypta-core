@@ -701,12 +701,14 @@ module.exports = class ScryptaCore {
                             if(this.debug){
                                 console.log(txid)
                             }
-                            if (txid !== null && txid.length === 64) {
+                            if (txid !== undefined && txid !== null && txid.length === 64) {
                                 for (let i in inputs) {
                                     await this.pushTXIDtoCache(inputs[i])
                                 }
                                 // console.log("TX SENT: " + txid)
                                 return Promise.resolve(txid)
+                            }else{
+                                return Promise.resolve(false) //NOT ENOUGH FUNDS
                             }
                         }
                     } else {
@@ -1054,7 +1056,7 @@ module.exports = class ScryptaCore {
                                     if(this.debug){
                                         console.log(txid)
                                     }
-                                    if (txid !== null && txid.length === 64) {
+                                    if (txid !== undefined && txid !== null && txid.length === 64) {
                                         totalfees += fees
                                         for (let i in rawtransaction.inputs) {
                                             await this.pushTXIDtoCache(rawtransaction.inputs[i])
