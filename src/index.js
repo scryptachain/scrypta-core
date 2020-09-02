@@ -1319,9 +1319,9 @@ module.exports = class ScryptaCore {
                             let verified = await app.verifyMessage(data.pubkey, data.signature, data.message)
                             if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
                                 global['cache'].push(data.signature)
-                                let check = await db.get('messages', 'signature', data.signature)
+                                let check = await db.get('p2p', 'signature', data.signature)
                                 if (!check) {
-                                    await db.put('messages', {
+                                    await db.put('p2p', {
                                         signature: data.signature,
                                         message: data.message,
                                         pubkey: data.pubKey,
