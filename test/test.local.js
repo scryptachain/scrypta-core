@@ -4,6 +4,19 @@ var assert = require('assert')
 const password = '123456'
 
 describe('Addresses', async function() {
+    it('Address can send a transaction', async function(){
+        this.timeout(35000)
+        let prv = 'SqKfYCBLjWx3NobRBTdeHN75HXn9f9wgi2po1QkwLvwHxCVHM3Qw'
+        let pub = 'LY6BHLvjNbHCQxnpGgt6BvXhXjfX6Nk1X2'
+        let to = 'LKsWzbbmi43tHb5KPv7jv3zm43eGeYaKJK'
+        let amount = 0.001
+        let password = 'password'
+        await scrypta.importPrivateKey(prv, password)
+        scrypta.debug = true
+        let tx = await scrypta.send(pub, password, to, amount)
+        console.log('TX RESPONSE IS', tx)
+        assert.equal(64, tx.length);
+    })
     it('Should return all nodes', async function(){
         let nodes = await scrypta.returnNodes()
         assert.equal(16, nodes.length);
@@ -33,18 +46,6 @@ describe('Addresses', async function() {
     it('Should return all identities', async function(){
         let identities = await scrypta.returnIdentities()
         assert.notEqual(0, identities.count);
-    })
-    it('Address can send a transaction', async function(){
-        this.timeout(35000)
-        let prv = 'SqKfYCBLjWx3NobRBTdeHN75HXn9f9wgi2po1QkwLvwHxCVHM3Qw'
-        let pub = 'LY6BHLvjNbHCQxnpGgt6BvXhXjfX6Nk1X2'
-        let to = 'LKXyszE4EQGRZZKuua5qdyu7PuGuowQHX4'
-        let amount = 0.001
-        let password = 'password'
-        await scrypta.importPrivateKey(prv, password)
-        let tx = await scrypta.send(pub, password, to, amount)
-        console.log(tx)
-        assert.equal(64, tx.length);
     })
     it('Should create RSA keys for identity', async function(){
         this.timeout(15000)

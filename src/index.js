@@ -682,11 +682,19 @@ module.exports = class ScryptaCore {
                     }
                     if (inputamount >= amountneed) {
                         var change = inputamount - amountneed;
-                        if (amount > 0.00001) {
-                            trx.addoutput(to, amount);
-                        }
-                        if (change > 0.00001) {
-                            trx.addoutput(from, change);
+                        if(to !== from){
+                            if (amount > 0.00001) {
+                                trx.addoutput(to, amount);
+                            }
+                            if (change > 0.00001) {
+                                trx.addoutput(from, change);
+                            }
+                        }else{
+                            var realamount = inputamount - fees
+                            if(this.debug === true){
+                                console.log('SENDING INPUT - FEES TO SENDER, BECAUSE SENDER AND RECEIVER ARE SAME ACCOUNT', realamount)
+                            }
+                            trx.addoutput(from, realamount)
                         }
                         if (metadata !== '') {
                             if (metadata.length <= MAX_OPRETURN) {
@@ -698,6 +706,7 @@ module.exports = class ScryptaCore {
                         }
                         var wif = decrypted.prv;
                         var signed = trx.sign(wif, 1);
+
                         if (send === false) {
                             return Promise.resolve({
                                 inputs: inputs,
@@ -706,7 +715,7 @@ module.exports = class ScryptaCore {
                         } else {
                             var txid = await this.sendRawTransaction(signed)
                             if(this.debug){
-                                console.log(txid)
+                                console.log('TXID IS ', txid)
                             }
                             if (txid !== undefined && txid !== null && txid.length === 64) {
                                 for (let i in inputs) {
@@ -747,26 +756,45 @@ module.exports = class ScryptaCore {
                         while (txid !== null && txid !== undefined && txid.length !== 64) {
                             var fees = 0.001 + (i / 1000)
                             rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
+                            if(this.debug){
+                                console.log('RAWTRANSACTION IS', rawtransaction)
+                            }
                             if(rawtransaction === false){
                                 Promise.resolve(false)
                             }
                             txid = await this.sendRawTransaction(rawtransaction.signed)
                             if(this.debug){
-                                console.log(rawtransaction, txid)
+                                console.log('TXID AFTER SEND IS ', txid)
                             }
                             if (txid !== null && txid !== false && txid.length === 64) {
+                                if(this.debug){
+                                    console.log('TXID IS VALID')
+                                }
                                 for (let i in rawtransaction.inputs) {
+                                    if(this.debug){
+                                        console.log('PUSHING TXID TO CACHE')
+                                    }
                                     await this.pushTXIDtoCache(rawtransaction.inputs[i])
                                 }
                                 //Storing UTXO to cache
                                 var decoded = await this.decodeRawTransaction(rawtransaction.signed)
-                                if (decoded.vout[1].scriptPubKey.addresses !== undefined) {
+                                if(this.debug){
+                                    console.log('DECODED TX IS', decoded)
+                                }
+                                let indexunspent = 1
+                                if(SIDS[0] === to){
+                                    indexunspent = 0
+                                }
+                                if (decoded.vout[indexunspent].scriptPubKey.addresses !== undefined) {
+                                    if(this.debug){
+                                        console.log('PUSHING UNSPENT TO CACHE')
+                                    }
                                     let unspent = {
                                         txid: decoded.txid,
-                                        vout: 1,
-                                        address: decoded.vout[1].scriptPubKey.addresses[0],
-                                        scriptPubKey: decoded.vout[1].scriptPubKey.hex,
-                                        amount: decoded.vout[1].value
+                                        vout: indexunspent,
+                                        address: decoded.vout[indexunspent].scriptPubKey.addresses[0],
+                                        scriptPubKey: decoded.vout[indexunspent].scriptPubKey.hex,
+                                        amount: decoded.vout[indexunspent].value
                                     }
                                     await this.pushUTXOtoCache(unspent)
                                 }
@@ -775,11 +803,17 @@ module.exports = class ScryptaCore {
                             }
                             i++;
                         }
+                        if(this.debug){
+                            console.log('RESOLVING PROMISE WITH RESULT', txid)
+                        }
                         return Promise.resolve(txid)
                     }else{
                         return Promise.resolve(false)
                     }
                 } catch (e) {
+                    if(this.debug){
+                        console.log(e)
+                    }
                     return Promise.resolve(false)
                 }
             } else {
