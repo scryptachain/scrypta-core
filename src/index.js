@@ -691,10 +691,12 @@ module.exports = class ScryptaCore {
                             }
                         }else{
                             var realamount = inputamount - fees
-                            if(this.debug === true){
-                                console.log('SENDING INPUT - FEES TO SENDER, BECAUSE SENDER AND RECEIVER ARE SAME ACCOUNT', realamount)
+                            if(realamount > 0.00001){
+                                if(this.debug === true){
+                                    console.log('SENDING INPUT - FEES TO SENDER, BECAUSE SENDER AND RECEIVER ARE SAME ACCOUNT', realamount)
+                                }
+                                trx.addoutput(from, realamount)
                             }
-                            trx.addoutput(from, realamount)
                         }
                         if (metadata !== '') {
                             if (metadata.length <= MAX_OPRETURN) {
