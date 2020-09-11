@@ -4,6 +4,19 @@ var assert = require('assert')
 const password = '123456'
 
 describe('Addresses', async function() {
+    it('Should create a testnet address', async function(){
+        this.timeout(35000)
+        scrypta.testnet = true
+        let address = await scrypta.createAddress('123456')
+        console.log('ADDRESS IS', address)
+        assert.strictEqual(34, address.pub.length);
+    })
+    it('Should create a mainnet address', async function(){
+        this.timeout(35000)
+        let address = await scrypta.createAddress('123456')
+        console.log('ADDRESS IS', address)
+        assert.strictEqual(34, address.pub.length);
+    })
     it('Address can send a transaction', async function(){
         this.timeout(35000)
         let prv = 'SqKfYCBLjWx3NobRBTdeHN75HXn9f9wgi2po1QkwLvwHxCVHM3Qw'
