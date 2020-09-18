@@ -1322,6 +1322,42 @@ module.exports = class ScryptaCore {
         })
     }
 
+    createContractRequest(key, password, request){
+        const app = this
+        return new Promise(async response => {
+            let wallet = await this.returnKey(key)
+            if (wallet !== false) {
+                if (password !== '') {
+                    var SIDS = key.split(':');
+                    let identity = await app.readKey(password, key)
+                    if(identity !== false){
+                        if(request.contract !== undefined && request.function !== undefined && request.params !== undefined){
+                            let hex = Buffer.from(JSON.stringify(request)).toString('hex')
+                            let signed = await app.signMessage(identity.prv, hex)
+                            response(signed)
+                        }else{
+                            response(false)
+                        }
+                    }else{
+                        response(false)
+                    }
+                }
+            } else {
+                response(false)
+            }
+        })
+    }
+
+    sendContractRequest(request, node){
+        return new Promise(async response =>{
+            try{
+                let res = await axios.post(node + '/contracts/run', request)
+                response(res.data)
+            }catch(e){
+                response(false)
+            }
+        })
+    }
     // P2P FUNCTIONALITIES
 
     async connectP2P(callback) {
