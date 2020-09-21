@@ -469,18 +469,24 @@ module.exports = class ScryptaCore {
         return response;
     }
 
-    async generateMnemonic() {
+    async generateMnemonic(language) {
         return new Promise(response => {
+            if(language !== ''){
+                let supported = ['english', 'italian', 'spanish', 'french']
+                if(supported.indexOf(language) !== -1){
+                    bip39.setDefaultWordlist(language)
+                }
+            }
             const mnemonic = bip39.generateMnemonic(256)
             response(mnemonic)
         })
     }
 
-    buildxSid(password, saveKey = true) {
+    buildxSid(password, language = '', saveKey = true) {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
-            const mnemonic = await this.generateMnemonic()
+            const mnemonic = await this.generateMnemonic(language)
             let seed = await bip39.mnemonicToSeed(mnemonic)
             var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
             let xprv = hdkey.privateExtendedKey
@@ -579,7 +585,7 @@ module.exports = class ScryptaCore {
             
             var hdkey = HDKey.fromExtendedKey(xpub)
             var childkey = hdkey.derive(index)
-
+            
             response({
                 key: childkey.publicKey.toString('hex'),
                 pub: await this.getAddressFromPubKey(childkey.publicKey.toString('hex'))

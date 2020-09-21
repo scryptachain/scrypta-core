@@ -45,11 +45,11 @@ describe('Addresses', async function () {
         scrypta.testnet = false
         let xsid = await scrypta.buildxSid('123456', false)
         console.log(xsid)
-        let deriveseed = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/1")
+        let deriveseed = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/2")
         console.log(deriveseed)
-        let derivexpriv = await scrypta.deriveKeyFromXPrv(xsid.xprv, "m/0/0/1")
+        let derivexpriv = await scrypta.deriveKeyFromXPrv(xsid.xprv, "m/0/0/2")
         console.log(derivexpriv)
-        let derive = await scrypta.deriveKeyfromXPub(xsid.xpub, "m/0/0/1")
+        let derive = await scrypta.deriveKeyfromXPub(xsid.xpub, "m/0/0/2")
         console.log(derive)
     })
 });
