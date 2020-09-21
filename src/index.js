@@ -10,7 +10,8 @@ const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa');
 const { sum, round, subtract } = require('mathjs')
 const { captureRejectionSymbol } = require('events')
-const { isUndefined } = require('lodash')
+const bip39 = require('bip39')
+const HDKey = require('hdkey')
 
 const lyraInfo = {
     mainnet: {
@@ -35,7 +36,7 @@ module.exports = class ScryptaCore {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
         this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
-        this.testnetIdaNodes = ['https://testnet.scryptachain.org','https://testnet02.scryptachain.org']
+        this.testnetIdaNodes = ['https://testnet.scryptachain.org', 'https://testnet02.scryptachain.org']
         this.staticnodes = false
         this.debug = false
         this.MAX_OPRETURN = 7500
@@ -86,9 +87,9 @@ module.exports = class ScryptaCore {
                     }
                 }
             } else {
-                if(this.testnet === false){
+                if (this.testnet === false) {
                     response(app.mainnetIdaNodes)
-                }else{
+                } else {
                     response(app.testnetIdaNodes)
                 }
             }
@@ -102,23 +103,23 @@ module.exports = class ScryptaCore {
                 node = await app.connectNode()
             }
             let res
-            try{
-                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node) 
+            try {
+                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => {
+                    console.log("ERROR ON IDANODE " + node)
                     response(false)
                 })
-            }catch(e){
+            } catch (e) {
                 node = await app.connectNode()
-                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node) 
+                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => {
+                    console.log("ERROR ON IDANODE " + node)
                     response(false)
                 })
             }
-            
-            if(res !== undefined && res.data !== undefined){
+
+            if (res !== undefined && res.data !== undefined) {
                 response(res.data)
-            }else{
-                console.log("ERROR ON IDANODE " + node) 
+            } else {
+                console.log("ERROR ON IDANODE " + node)
                 response(false)
             }
         })
@@ -131,21 +132,21 @@ module.exports = class ScryptaCore {
                 node = await app.connectNode()
             }
             let res
-            try{
-                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node) 
-                    response(false) 
+            try {
+                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
+                    console.log("ERROR ON IDANODE " + node)
+                    response(false)
                 })
-            }catch(e){
+            } catch (e) {
                 node = await app.connectNode()
-                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => { 
-                    console.log("ERROR ON IDANODE " + node) 
-                    response(false) 
+                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
+                    console.log("ERROR ON IDANODE " + node)
+                    response(false)
                 })
             }
             if (res !== undefined && res.data !== undefined) {
                 response(res.data)
-            }else{
+            } else {
                 response(false)
             }
         })
@@ -170,7 +171,7 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             if (app.idanode === '') {
                 let connected = false
-                if(app.debug === true){
+                if (app.debug === true) {
                     console.log('CONNECTING TO FIRST AVAILABLE IDANODE')
                 }
                 while (connected === false) {
@@ -178,7 +179,7 @@ module.exports = class ScryptaCore {
                     if (node !== false) {
                         connected = true
                         app.idanode = node
-                        if(app.debug === true){
+                        if (app.debug === true) {
                             console.log('CONNECTED TO ' + app.idanode)
                         }
                         response(node)
@@ -187,14 +188,14 @@ module.exports = class ScryptaCore {
             } else {
                 let check = await app.checkNode(app.idanode)
                 if (check !== false && check.data.toindex <= 1) {
-                    if(app.debug === true){
+                    if (app.debug === true) {
                         console.log('CONNECTED IDANODE ' + app.idanode + ' STILL VALID')
                     }
                     response(app.idanode)
                 } else {
                     app.idanode = ''
                     let connected = false
-                    if(app.debug === true){
+                    if (app.debug === true) {
                         console.log('CONNECTED IDANODE ' + app.idanode + ' NOT VALID ANYMORE, CONNECTING TO NEW IDANODE')
                     }
                     while (connected === false) {
@@ -383,13 +384,13 @@ module.exports = class ScryptaCore {
     async decryptData(data, password, buffer = false) {
         return new Promise(response => {
             try {
-                if(data.indexOf('*') === -1){
+                if (data.indexOf('*') === -1) {
                     // MAINTAIN FALLBACK TO OLD ENCRYPTED WALLETS
                     var decipher = crypto.createDecipher('aes-256-cbc', password)
                     var dec = decipher.update(data, 'hex', 'utf8')
                     dec += decipher.final('utf8')
                     response(dec)
-                }else{
+                } else {
                     let textParts = data.split('*');
                     let iv = Buffer.from(textParts.shift(), 'hex')
                     let encryptedText = Buffer.from(textParts.join('*'), 'hex')
@@ -397,9 +398,9 @@ module.exports = class ScryptaCore {
                     let decipher = crypto.createDecipheriv('aes-256-ctr', key, iv)
                     let decrypted = decipher.update(encryptedText)
                     decrypted = Buffer.concat([decrypted, decipher.final()])
-                    if(buffer === false){
+                    if (buffer === false) {
                         response(decrypted.toString())
-                    }else{
+                    } else {
                         response(decrypted)
                     }
                 }
@@ -466,6 +467,124 @@ module.exports = class ScryptaCore {
             walletstore: walletstore
         }
         return response;
+    }
+
+    async generateMnemonic() {
+        return new Promise(response => {
+            const mnemonic = bip39.generateMnemonic(256)
+            response(mnemonic)
+        })
+    }
+
+    buildxSid(password, saveKey = true) {
+        const app = this
+        const db = new ScryptaDB(app.isBrowser)
+        return new Promise(async response => {
+            const mnemonic = await this.generateMnemonic()
+            let seed = await bip39.mnemonicToSeed(mnemonic)
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+            let xprv = hdkey.privateExtendedKey
+            let xpub = hdkey.publicExtendedKey
+
+            let wallethex = await this.cryptData(seed, password)
+            var walletstore = xpub + ':' + wallethex;
+
+            if (saveKey === true) {
+                let check = await db.get('xsid', 'master', xpub)
+                if (!check) {
+                    await db.put('xsid', {
+                        xpub: xpub,
+                        wallet: walletstore
+                    })
+                } else {
+                    await db.update('xsid', 'master', xpub, {
+                        xpub: xpub,
+                        wallet: walletstore
+                    })
+                }
+            }
+
+            response({
+                mnemonic: mnemonic,
+                seed: seed.toString('hex'),
+                xprv: xprv,
+                xpub: xpub,
+                walletstore: walletstore
+            })
+        })
+    }
+
+    returnXKeysFromSeed(seed, index) {
+        return new Promise(async response => {
+            let params = lyraInfo.mainnet
+            if (this.testnet === true) {
+                params = lyraInfo.testnet
+            }
+            
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed,'hex'))
+            let xprv = hdkey.privateExtendedKey
+            let xpub = hdkey.publicExtendedKey
+
+            response({
+                xprv: xprv,
+                xpub: xpub
+            })
+        })
+    }
+
+    deriveKeyFromSeed(seed, index) {
+        return new Promise(async response => {
+            let params = lyraInfo.mainnet
+            if (this.testnet === true) {
+                params = lyraInfo.testnet
+            }
+            
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed,'hex'))
+            var childkey = hdkey.derive(index)
+            var key = new CoinKey(childkey.privateKey, params)
+
+            response({
+                key: childkey.publicKey.toString('hex'),
+                prv: key.privateWif,
+                pub: key.publicAddress
+            })
+        })
+    }
+
+    deriveKeyFromXPrv(xprv, index) {
+        return new Promise(async response => {
+            let params = lyraInfo.mainnet
+            if (this.testnet === true) {
+                params = lyraInfo.testnet
+            }
+            
+            var hdkey = HDKey.fromExtendedKey(xprv)
+            var childkey = hdkey.derive(index)
+            var key = new CoinKey(childkey.privateKey, params)
+
+            response({
+                key: childkey.publicKey.toString('hex'),
+                prv: key.privateWif,
+                pub: key.publicAddress
+            })
+        })
+    }
+
+    deriveKeyfromXPub(xpub, index){
+        return new Promise(async response => {
+            let params = lyraInfo.mainnet
+            if (this.testnet === true) {
+                params = lyraInfo.testnet
+            }
+            
+            var hdkey = HDKey.fromExtendedKey(xpub)
+            var childkey = hdkey.derive(index)
+
+            response({
+                key: childkey.publicKey.toString('hex'),
+                pub: await this.getAddressFromPubKey(childkey.publicKey.toString('hex'))
+            })
+        })
     }
 
     async buildWallet(password, pub, wallet, saveKey) {
@@ -539,7 +658,6 @@ module.exports = class ScryptaCore {
             }
         }
     }
-
 
     importPrivateKey(key, password) {
         return new Promise(async response => {
@@ -647,10 +765,10 @@ module.exports = class ScryptaCore {
                 var cache = await this.returnUTXOCache()
                 if (cache !== undefined && cache.length > 0) {
                     for (var x = 0; x < cache.length; x++) {
-                        if(this.debug){
+                        if (this.debug) {
                             console.log(cache[x])
                         }
-                        if(cache[x].address === SIDS[0]){
+                        if (cache[x].address === SIDS[0]) {
                             unspent.push(cache[x])
                         }
                     }
@@ -659,7 +777,7 @@ module.exports = class ScryptaCore {
                 for (var x = 0; x < listunspent.length; x++) {
                     unspent.push(listunspent[x])
                 }
-                if(this.debug){
+                if (this.debug) {
                     console.log('UNSPENT', unspent, unspent.length)
                 }
                 if (unspent.length > 0) {
@@ -675,24 +793,24 @@ module.exports = class ScryptaCore {
                                 trx.addinput(txid, index, script);
                                 inputamount += unspent[i]['amount']
                                 inputs.push(txid + ':' + index)
-                            }else if(this.debug){
+                            } else if (this.debug) {
                                 console.log('INPUT ALREADY IN CACHE ' + txid + ':' + index)
                             }
                         }
                     }
                     if (inputamount >= amountneed) {
                         var change = inputamount - amountneed;
-                        if(to !== from){
+                        if (to !== from) {
                             if (amount > 0.00001) {
                                 trx.addoutput(to, amount);
                             }
                             if (change > 0.00001) {
                                 trx.addoutput(from, change);
                             }
-                        }else{
+                        } else {
                             var realamount = inputamount - fees
-                            if(realamount > 0.00001){
-                                if(this.debug === true){
+                            if (realamount > 0.00001) {
+                                if (this.debug === true) {
                                     console.log('SENDING INPUT - FEES TO SENDER, BECAUSE SENDER AND RECEIVER ARE SAME ACCOUNT', realamount)
                                 }
                                 trx.addoutput(from, realamount)
@@ -716,7 +834,7 @@ module.exports = class ScryptaCore {
                             });
                         } else {
                             var txid = await this.sendRawTransaction(signed)
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('TXID IS ', txid)
                             }
                             if (txid !== undefined && txid !== null && txid.length === 64) {
@@ -725,12 +843,12 @@ module.exports = class ScryptaCore {
                                 }
                                 // console.log("TX SENT: " + txid)
                                 return Promise.resolve(txid)
-                            }else{
+                            } else {
                                 return Promise.resolve(false) //NOT ENOUGH FUNDS
                             }
                         }
                     } else {
-                        if(this.debug){ console.log('NOT ENOUGH FUNDS') }
+                        if (this.debug) { console.log('NOT ENOUGH FUNDS') }
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
@@ -751,44 +869,44 @@ module.exports = class ScryptaCore {
                 var SIDS = wallet.split(':');
                 try {
                     let decrypted = await this.decryptData(SIDS[1], password)
-                    if(decrypted !== false){
+                    if (decrypted !== false) {
                         var txid = ''
                         var i = 0
                         var rawtransaction
                         while (txid !== null && txid !== undefined && txid.length !== 64) {
                             var fees = 0.001 + (i / 1000)
                             rawtransaction = await this.build(wallet, password, false, to, amount, metadata, fees)
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('RAWTRANSACTION IS', rawtransaction)
                             }
-                            if(rawtransaction === false){
+                            if (rawtransaction === false) {
                                 Promise.resolve(false)
                             }
                             txid = await this.sendRawTransaction(rawtransaction.signed)
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('TXID AFTER SEND IS ', txid)
                             }
                             if (txid !== null && txid !== false && txid.length === 64) {
-                                if(this.debug){
+                                if (this.debug) {
                                     console.log('TXID IS VALID')
                                 }
                                 for (let i in rawtransaction.inputs) {
-                                    if(this.debug){
+                                    if (this.debug) {
                                         console.log('PUSHING TXID TO CACHE')
                                     }
                                     await this.pushTXIDtoCache(rawtransaction.inputs[i])
                                 }
                                 //Storing UTXO to cache
                                 var decoded = await this.decodeRawTransaction(rawtransaction.signed)
-                                if(this.debug){
+                                if (this.debug) {
                                     console.log('DECODED TX IS', decoded)
                                 }
                                 let indexunspent = 1
-                                if(SIDS[0] === to){
+                                if (SIDS[0] === to) {
                                     indexunspent = 0
                                 }
                                 if (decoded.vout[indexunspent].scriptPubKey.addresses !== undefined) {
-                                    if(this.debug){
+                                    if (this.debug) {
                                         console.log('PUSHING UNSPENT TO CACHE')
                                     }
                                     let unspent = {
@@ -805,15 +923,15 @@ module.exports = class ScryptaCore {
                             }
                             i++;
                         }
-                        if(this.debug){
+                        if (this.debug) {
                             console.log('RESOLVING PROMISE WITH RESULT', txid)
                         }
                         return Promise.resolve(txid)
-                    }else{
+                    } else {
                         return Promise.resolve(false)
                     }
                 } catch (e) {
-                    if(this.debug){
+                    if (this.debug) {
                         console.log(e)
                     }
                     return Promise.resolve(false)
@@ -874,7 +992,7 @@ module.exports = class ScryptaCore {
                 } catch (e) {
                     return false
                 }
-                if(decrypted.prv !== undefined){
+                if (decrypted.prv !== undefined) {
                     const address = SIDS[0]
                     var sxid = ''
                     let unspent = await app.listPlanumUnspent(address)
@@ -1035,7 +1153,7 @@ module.exports = class ScryptaCore {
                         // console.log('NO UNSPENT')
                         return false
                     }
-                }else{
+                } else {
                     return false
                 }
             } else {
@@ -1056,7 +1174,7 @@ module.exports = class ScryptaCore {
                 try {
                     //console.log('WRITING TO BLOCKCHAIN')
                     let decrypted = await this.decryptData(SIDS[1], password)
-                    if(decrypted !== false){
+                    if (decrypted !== false) {
                         let address = SIDS[0]
 
                         if (uuid === '') {
@@ -1091,12 +1209,12 @@ module.exports = class ScryptaCore {
                             while (txid.length !== 64) {
                                 var fees = 0.001 + (i / 1000)
                                 var rawtransaction = await this.build(wallet, password, false, address, 0, dataToWrite, fees)
-                                if(this.debug){
+                                if (this.debug) {
                                     console.log(rawtransaction.signed)
                                 }
                                 if (rawtransaction.signed !== false) {
                                     txid = await this.sendRawTransaction(rawtransaction.signed)
-                                    if(this.debug){
+                                    if (this.debug) {
                                         console.log(txid)
                                     }
                                     if (txid !== undefined && txid !== null && txid.length === 64) {
@@ -1116,18 +1234,18 @@ module.exports = class ScryptaCore {
                                             }
                                             await this.pushUTXOtoCache(unspent)
                                         }
-                                    }else{
+                                    } else {
                                         txid = ''
                                     }
                                 }
                                 i++;
-                                retries ++;
-                                if(retries > 9){
+                                retries++;
+                                if (retries > 9) {
                                     txid = '0000000000000000000000000000000000000000000000000000000000000000'
                                 }
                             }
 
-                            if(txid !== '0000000000000000000000000000000000000000000000000000000000000000'){
+                            if (txid !== '0000000000000000000000000000000000000000000000000000000000000000') {
                                 return Promise.resolve({
                                     uuid: uuid,
                                     address: wallet,
@@ -1140,7 +1258,7 @@ module.exports = class ScryptaCore {
                                     stored: dataToWrite,
                                     txs: [txid]
                                 })
-                            }else{
+                            } else {
                                 return Promise.resolve(false)
                             }
 
@@ -1234,7 +1352,7 @@ module.exports = class ScryptaCore {
                             })
 
                         }
-                    }else{
+                    } else {
                         return Promise.resolve(false);
                     }
                 } catch (error) {
@@ -1322,7 +1440,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    createContractRequest(key, password, request){
+    createContractRequest(key, password, request) {
         const app = this
         return new Promise(async response => {
             let wallet = await this.returnKey(key)
@@ -1330,15 +1448,15 @@ module.exports = class ScryptaCore {
                 if (password !== '') {
                     var SIDS = key.split(':');
                     let identity = await app.readKey(password, key)
-                    if(identity !== false){
-                        if(request.contract !== undefined && request.function !== undefined && request.params !== undefined){
+                    if (identity !== false) {
+                        if (request.contract !== undefined && request.function !== undefined && request.params !== undefined) {
                             let hex = Buffer.from(JSON.stringify(request)).toString('hex')
                             let signed = await app.signMessage(identity.prv, hex)
                             response(signed)
-                        }else{
+                        } else {
                             response(false)
                         }
-                    }else{
+                    } else {
                         response(false)
                     }
                 }
@@ -1348,12 +1466,12 @@ module.exports = class ScryptaCore {
         })
     }
 
-    sendContractRequest(request, node){
-        return new Promise(async response =>{
-            try{
+    sendContractRequest(request, node) {
+        return new Promise(async response => {
+            try {
                 let res = await axios.post(node + '/contracts/run', request)
                 response(res.data)
-            }catch(e){
+            } catch (e) {
                 response(false)
             }
         })
@@ -1370,8 +1488,8 @@ module.exports = class ScryptaCore {
             let check = await app.checkNode(node)
             if (check !== false) {
                 let ready = await app.get('/wallet/getinfo', node)
-                if(ready.blocks !== undefined){
-                    try{
+                if (ready.blocks !== undefined) {
+                    try {
                         console.log('Bootstrap connection to ' + node.replace('https://', 'https://p2p.'))
                         global['nodes'][node] = require('socket.io-client')(node.replace('https://', 'https://p2p.'), { reconnect: true })
                         global['nodes'][node].on('connect', function () {
@@ -1385,7 +1503,7 @@ module.exports = class ScryptaCore {
 
                         //PROTOCOLS
                         global['nodes'][node].on('message', async function (data) {
-                            if(data.pubkey === undefined && data.pubKey !== undefined){
+                            if (data.pubkey === undefined && data.pubKey !== undefined) {
                                 data.pubkey = data.pubKey
                             }
                             let verified = await app.verifyMessage(data.pubkey, data.signature, data.message)
@@ -1406,7 +1524,7 @@ module.exports = class ScryptaCore {
                                 }
                             }
                         })
-                    }catch(e){
+                    } catch (e) {
                         console.log("CAN'T CONNECT TO " + node)
                     }
                 }
