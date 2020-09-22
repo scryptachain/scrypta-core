@@ -462,31 +462,37 @@ module.exports = class ScryptaCore {
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
-            let wallethex = await this.cryptData(seed, password)
-            var walletstore = xpub + ':' + wallethex;
+            let wallethex = await this.cryptData(seed.toString('hex'), password)
+            let check = await this.decryptData(wallethex, password)
+            
+            if(check !== false && check === seed.toString('hex')){
+                var walletstore = xpub + ':' + wallethex;
 
-            if (saveKey === true) {
-                let check = await db.get('xsid', 'master', xpub)
-                if (!check) {
-                    await db.put('xsid', {
-                        xpub: xpub,
-                        wallet: walletstore
-                    })
-                } else {
-                    await db.update('xsid', 'master', xpub, {
-                        xpub: xpub,
-                        wallet: walletstore
-                    })
+                if (saveKey === true) {
+                    let check = await db.get('xsid', 'master', xpub)
+                    if (!check) {
+                        await db.put('xsid', {
+                            xpub: xpub,
+                            wallet: walletstore
+                        })
+                    } else {
+                        await db.update('xsid', 'master', xpub, {
+                            xpub: xpub,
+                            wallet: walletstore
+                        })
+                    }
                 }
-            }
 
-            response({
-                mnemonic: mnemonic,
-                seed: seed.toString('hex'),
-                xprv: xprv,
-                xpub: xpub,
-                walletstore: walletstore
-            })
+                response({
+                    mnemonic: mnemonic,
+                    seed: seed.toString('hex'),
+                    xprv: xprv,
+                    xpub: xpub,
+                    walletstore: walletstore
+                })
+            }else{
+                response(false)
+            }
         })
     }
 
@@ -514,10 +520,12 @@ module.exports = class ScryptaCore {
                 var xSIDS = key.split(':')
                 try {
                     let decrypted = await this.decryptData(xSIDS[1], password)
-                    return Promise.resolve(JSON.parse(decrypted));
+                    let xsid = await this.returnXKeysFromSeed(decrypted)
+                    xsid.seed = decrypted
+                    return Promise.resolve(xsid)
                 } catch (ex) {
                     // console.log('WRONG PASSWORD')
-                    return Promise.resolve(false);
+                    return Promise.resolve(false)
                 }
             }
         } else {
@@ -527,11 +535,7 @@ module.exports = class ScryptaCore {
 
     returnXKeysFromSeed(seed) {
         return new Promise(async response => {
-            let params = lyraInfo.mainnet
-            if (this.testnet === true) {
-                params = lyraInfo.testnet
-            }
-            
+
             var hdkey = HDKey.fromMasterSeed(Buffer.from(seed,'hex'))
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey

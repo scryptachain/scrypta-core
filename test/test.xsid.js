@@ -7,9 +7,11 @@ describe('Addresses', async function () {
     it('Should create an extended ScryptaID', async function () {
         this.timeout(35000)
         let xsid = await scrypta.buildxSid('123456', false)
-        console.log(xsid)
-        let derive = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0'/0/1")
-        console.log(derive)
+        console.log('GENERATING', xsid)
+        let checksid = await scrypta.readxKey('123456', xsid.walletstore)
+        console.log('READING', checksid)
+        let derive = await scrypta.deriveKeyFromSeed(checksid.seed, "m/0'/0/1")
+        console.log('DERIVING', derive)
     })
 
     it('Should create an extended testnet ScryptaID', async function () {
