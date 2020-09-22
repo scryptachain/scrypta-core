@@ -490,6 +490,41 @@ module.exports = class ScryptaCore {
         })
     }
 
+    returnxKey(xpub) {
+        const app = this
+        return new Promise(async response => {
+            if (xpub.length === 111) {
+                const db = new ScryptaDB(app.isBrowser)
+                let doc = await db.get('xsid', 'master', xpub)
+                if (doc !== undefined) {
+                    response(doc.wallet)
+                } else {
+                    response(false)
+                }
+            } else {
+                response(xpub)
+            }
+        })
+    }
+
+    async readxKey(password, key) {
+        let wallet = await this.returnxKey(key)
+        if (wallet !== false) {
+            if (password !== '') {
+                var xSIDS = key.split(':')
+                try {
+                    let decrypted = await this.decryptData(xSIDS[1], password)
+                    return Promise.resolve(JSON.parse(decrypted));
+                } catch (ex) {
+                    // console.log('WRONG PASSWORD')
+                    return Promise.resolve(false);
+                }
+            }
+        } else {
+            return false
+        }
+    }
+
     returnXKeysFromSeed(seed) {
         return new Promise(async response => {
             let params = lyraInfo.mainnet
