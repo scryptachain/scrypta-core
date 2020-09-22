@@ -274,6 +274,15 @@ module.exports = class ScryptaCore {
         })
     }
 
+    hash(text) {
+        return new Promise(response => {
+            let buf = Buffer.from(text, 'hex')
+            var sha = crypto.createHash('sha256').update(buf).digest()
+            response(sha.toString('hex'))
+        })
+    }
+
+
     //CACHE FUNCTIONS
     async clearCache(force = false) {
         const app = this

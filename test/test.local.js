@@ -4,6 +4,10 @@ var assert = require('assert')
 const password = '123456'
 
 describe('Addresses', async function() {
+    it('Should hash something', async function (){
+        let hash = await scrypta.hash('boh')
+        console.log('HASH', hash)
+    })
     it('Should create a testnet address', async function(){
         this.timeout(35000)
         let address = await scrypta.createAddress('123456')
