@@ -276,7 +276,7 @@ module.exports = class ScryptaCore {
 
     hash(text) {
         return new Promise(response => {
-            let buf = Buffer.from(text, 'hex')
+            let buf = Buffer.from(text)
             var sha = crypto.createHash('sha256').update(buf).digest()
             response(sha.toString('hex'))
         })
