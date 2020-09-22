@@ -282,6 +282,20 @@ module.exports = class ScryptaCore {
         })
     }
 
+    hashtopath(hash) {
+        let bignum = hash.match(/.{1,2}/g)
+        let num = ''
+        for (let k in bignum) {
+            num += parseInt(bignum[k], 16).toString()
+        }
+        // DERIVE NUMBER FROM HASH
+        let parts = num.match(/.{1,8}/g)
+        let path = 'm'
+        for (let k in parts) {
+            path += '/' + parts[k]
+        }
+        return path
+    }
 
     //CACHE FUNCTIONS
     async clearCache(force = false) {
@@ -450,9 +464,9 @@ module.exports = class ScryptaCore {
     // XSID (BIP32-39) MANAGEMENT
     async generateMnemonic(language) {
         return new Promise(response => {
-            if(language !== ''){
+            if (language !== '') {
                 let supported = ['english', 'italian', 'spanish', 'french']
-                if(supported.indexOf(language) !== -1){
+                if (supported.indexOf(language) !== -1) {
                     bip39.setDefaultWordlist(language)
                 }
             }
@@ -473,8 +487,8 @@ module.exports = class ScryptaCore {
 
             let wallethex = await this.cryptData(seed.toString('hex'), password)
             let check = await this.decryptData(wallethex, password)
-            
-            if(check !== false && check === seed.toString('hex')){
+
+            if (check !== false && check === seed.toString('hex')) {
                 var walletstore = xpub + ':' + wallethex;
 
                 if (saveKey === true) {
@@ -499,7 +513,7 @@ module.exports = class ScryptaCore {
                     xpub: xpub,
                     walletstore: walletstore
                 })
-            }else{
+            } else {
                 response(false)
             }
         })
@@ -545,7 +559,7 @@ module.exports = class ScryptaCore {
     returnXKeysFromSeed(seed) {
         return new Promise(async response => {
 
-            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed,'hex'))
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
@@ -562,8 +576,8 @@ module.exports = class ScryptaCore {
             if (this.testnet === true) {
                 params = lyraInfo.testnet
             }
-            
-            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed,'hex'))
+
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
             var childkey = hdkey.derive(index)
             var key = new CoinKey(childkey.privateKey, params)
 
@@ -581,7 +595,7 @@ module.exports = class ScryptaCore {
             if (this.testnet === true) {
                 params = lyraInfo.testnet
             }
-            
+
             var hdkey = HDKey.fromExtendedKey(xprv)
             var childkey = hdkey.derive(index)
             var key = new CoinKey(childkey.privateKey, params)
@@ -594,16 +608,16 @@ module.exports = class ScryptaCore {
         })
     }
 
-    deriveKeyfromXPub(xpub, index){
+    deriveKeyfromXPub(xpub, index) {
         return new Promise(async response => {
             let params = lyraInfo.mainnet
             if (this.testnet === true) {
                 params = lyraInfo.testnet
             }
-            
+
             var hdkey = HDKey.fromExtendedKey(xpub)
             var childkey = hdkey.derive(index)
-            
+
             response({
                 key: childkey.publicKey.toString('hex'),
                 pub: await this.getAddressFromPubKey(childkey.publicKey.toString('hex'))
