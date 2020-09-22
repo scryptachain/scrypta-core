@@ -1,4 +1,3 @@
-const _ = require('lodash')
 const CoinKey = require('@scrypta/coinkey')
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js')
@@ -7,9 +6,8 @@ const cs = require('coinstring')
 const axios = require('axios')
 const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
-const NodeRSA = require('node-rsa');
+const NodeRSA = require('node-rsa')
 const { sum, round, subtract } = require('mathjs')
-const { captureRejectionSymbol } = require('events')
 const bip39 = require('bip39')
 const HDKey = require('hdkey')
 
@@ -36,7 +34,7 @@ module.exports = class ScryptaCore {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
         this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
-        this.testnetIdaNodes = ['https://testnet.scryptachain.org', 'https://testnet02.scryptachain.org']
+        this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.staticnodes = false
         this.debug = false
         this.MAX_OPRETURN = 7500
@@ -440,35 +438,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    //ADDRESS MANAGEMENT
-    async createAddress(password, saveKey = true) {
-        // LYRA WALLET
-        let params = lyraInfo.mainnet
-        if (this.testnet === true) {
-            params = lyraInfo.testnet
-        }
-        var ck = new CoinKey.createRandom(params)
-
-        var lyrapub = ck.publicAddress;
-        var lyraprv = ck.privateWif;
-        var lyrakey = ck.publicKey.toString('hex');
-
-        var wallet = {
-            prv: lyraprv,
-            key: lyrakey
-        }
-
-        var walletstore = await this.buildWallet(password, lyrapub, wallet, saveKey)
-
-        var response = {
-            pub: lyrapub,
-            key: lyrakey,
-            prv: lyraprv,
-            walletstore: walletstore
-        }
-        return response;
-    }
-
+    // XSID (BIP32-39) MANAGEMENT
     async generateMnemonic(language) {
         return new Promise(response => {
             if(language !== ''){
@@ -520,7 +490,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    returnXKeysFromSeed(seed, index) {
+    returnXKeysFromSeed(seed) {
         return new Promise(async response => {
             let params = lyraInfo.mainnet
             if (this.testnet === true) {
@@ -591,6 +561,35 @@ module.exports = class ScryptaCore {
                 pub: await this.getAddressFromPubKey(childkey.publicKey.toString('hex'))
             })
         })
+    }
+
+    //ADDRESS MANAGEMENT
+    async createAddress(password, saveKey = true) {
+        // LYRA WALLET
+        let params = lyraInfo.mainnet
+        if (this.testnet === true) {
+            params = lyraInfo.testnet
+        }
+        var ck = new CoinKey.createRandom(params)
+
+        var lyrapub = ck.publicAddress;
+        var lyraprv = ck.privateWif;
+        var lyrakey = ck.publicKey.toString('hex');
+
+        var wallet = {
+            prv: lyraprv,
+            key: lyrakey
+        }
+
+        var walletstore = await this.buildWallet(password, lyrapub, wallet, saveKey)
+
+        var response = {
+            pub: lyrapub,
+            key: lyrakey,
+            prv: lyraprv,
+            walletstore: walletstore
+        }
+        return response;
     }
 
     async buildWallet(password, pub, wallet, saveKey) {
