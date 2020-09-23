@@ -274,29 +274,6 @@ module.exports = class ScryptaCore {
         })
     }
 
-    hash(text) {
-        return new Promise(response => {
-            let buf = Buffer.from(text)
-            var sha = crypto.createHash('sha256').update(buf).digest()
-            response(sha.toString('hex'))
-        })
-    }
-
-    hashtopath(hash) {
-        let bignum = hash.match(/.{1,2}/g)
-        let num = ''
-        for (let k in bignum) {
-            num += parseInt(bignum[k], 16).toString()
-        }
-        // DERIVE NUMBER FROM HASH
-        let parts = num.match(/.{1,8}/g)
-        let path = 'm'
-        for (let k in parts) {
-            path += '/' + parts[k]
-        }
-        return path
-    }
-
     //CACHE FUNCTIONS
     async clearCache(force = false) {
         const app = this
@@ -389,6 +366,29 @@ module.exports = class ScryptaCore {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    hash(text) {
+        return new Promise(response => {
+            let buf = Buffer.from(text)
+            var sha = crypto.createHash('sha256').update(buf).digest()
+            response(sha.toString('hex'))
+        })
+    }
+
+    hashtopath(hash) {
+        let bignum = hash.match(/.{1,2}/g)
+        let num = ''
+        for (let k in bignum) {
+            num += parseInt(bignum[k], 16).toString()
+        }
+        // DERIVE NUMBER FROM HASH
+        let parts = num.match(/.{1,8}/g)
+        let path = 'm'
+        for (let k in parts) {
+            path += '/' + parts[k]
+        }
+        return path
+    }
+    
     //CRYPT AND ENCRYPT FUNCTIONS
     async cryptData(data, password) {
         return new Promise(response => {
@@ -786,21 +786,32 @@ module.exports = class ScryptaCore {
             let funded = false
             let success = false
             let retries = 0
-            let wallet = this.importPrivateKey(privkey, 'TEMP', false)
-            while (funded === false) {
-                let sent = await this.send(wallet.walletstore, 'TEMP', to, amount)
-                if (sent !== false && sent !== null && sent.length === 64) {
-                    funded = true
-                    success = true
-                }
-                retries++
-                if (retries > 10) {
-                    funded = true
-                }
+            let wallet = await this.importPrivateKey(privkey, 'TEMP', false)
+            let balance = await this.get('/balance/' + wallet.pub)
+            if(this.debug){
+                console.log('CHECKING ADDRESS' + wallet.pub)
             }
-            if (funded === true && success === true) {
-                response(true)
-            }else{
+            if (balance.balance >= amount) {
+                while (funded === false) {
+                    let sent = await this.send(wallet.walletstore, 'TEMP', to, amount)
+                    if (sent !== false && sent !== null && sent.length === 64) {
+                        funded = true
+                        success = true
+                    }
+                    retries++
+                    if (retries > 10) {
+                        funded = true
+                    }
+                }
+                if (funded === true && success === true) {
+                    response(true)
+                } else {
+                    response(false)
+                }
+            } else {
+                if(this.debug){
+                    console.log('BALANCE IS LOW')
+                }
                 response(false)
             }
         })

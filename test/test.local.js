@@ -8,6 +8,11 @@ describe('Addresses', async function() {
         let hash = await scrypta.hash('123456')
         console.log('HASH', hash)
     })
+    it('Should fund address', async function(){
+        this.timeout(35000)
+        let funded = await scrypta.fundAddress('SqKfYCBLjWx3NobRBTdeHN75HXn9f9wgi2po1QkwLvwHxCVHM3Qw', 'LKsWzbbmi43tHb5KPv7jv3zm43eGeYaKJK', 0.001)
+        console.log(funded)
+    })
     it('Should create a testnet address', async function(){
         this.timeout(35000)
         let address = await scrypta.createAddress('123456')
