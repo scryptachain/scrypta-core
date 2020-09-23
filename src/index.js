@@ -726,7 +726,7 @@ module.exports = class ScryptaCore {
         }
     }
 
-    importPrivateKey(key, password) {
+    importPrivateKey(key, password, save = true) {
         return new Promise(async response => {
             let lyrakey = await this.getPublicKey(key)
             let lyrapub = await this.getAddressFromPubKey(lyrakey)
@@ -735,7 +735,7 @@ module.exports = class ScryptaCore {
                 prv: key,
                 key: lyrakey
             }
-            var walletstore = await this.buildWallet(password, lyrapub, wallet, true)
+            var walletstore = await this.buildWallet(password, lyrapub, wallet, save)
 
             response({
                 pub: lyrapub,
@@ -779,6 +779,31 @@ module.exports = class ScryptaCore {
         } else {
             return false
         }
+    }
+
+    async fundAddress(privkey, to, amount) {
+        return new Promise(async response => {
+            let funded = false
+            let success = false
+            let retries = 0
+            let wallet = this.importPrivateKey(privkey, 'TEMP', false)
+            while (funded === false) {
+                let sent = await this.send(wallet.walletstore, 'TEMP', to, amount)
+                if (sent !== false && sent !== null && sent.length === 64) {
+                    funded = true
+                    success = true
+                }
+                retries++
+                if (retries > 10) {
+                    funded = true
+                }
+            }
+            if (funded === true && success === true) {
+                response(true)
+            }else{
+                response(false)
+            }
+        })
     }
 
     //TRANSACTIONS FUNCTIONS
