@@ -1575,6 +1575,9 @@ module.exports = class ScryptaCore {
                 let res = await axios.post(node + '/contracts/run', request)
                 response(res.data)
             } catch (e) {
+                if(this.debug === true){
+                    console.log(e)
+                }
                 response(false)
             }
         })
