@@ -8,7 +8,7 @@ const Trx = require('./trx/trx')
 const ScryptaDB = require('./db')
 const NodeRSA = require('node-rsa')
 const { sum, round, subtract } = require('mathjs')
-const bip39 = require('bip39')
+const bip39 = require('@scrypta/bip39')
 const HDKey = require('hdkey')
 
 const lyraInfo = {
