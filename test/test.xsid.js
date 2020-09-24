@@ -6,7 +6,7 @@ const password = '123456'
 describe('Addresses', async function () {
     it('Should create an extended ScryptaID', async function () {
         this.timeout(35000)
-        let xsid = await scrypta.buildxSid('123456', 'latin', false)
+        let xsid = await scrypta.buildxSid('123456', '', false)
         console.log('GENERATING', xsid)
         let checksid = await scrypta.readxKey('123456', xsid.walletstore)
         console.log('READING', checksid)
@@ -14,6 +14,7 @@ describe('Addresses', async function () {
         console.log('DERIVING', derive)
     })
 
+    /*
     it('Should create an extended testnet ScryptaID', async function () {
         this.timeout(35000)
         scrypta.testnet = true
@@ -53,5 +54,5 @@ describe('Addresses', async function () {
         console.log(derivexpriv)
         let derive = await scrypta.deriveKeyfromXPub(xsid.xpub, "m/0/0/2")
         console.log(derive)
-    })
+    }) */
 });

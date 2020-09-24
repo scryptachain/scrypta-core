@@ -465,10 +465,12 @@ module.exports = class ScryptaCore {
     async generateMnemonic(language) {
         return new Promise(response => {
             if (language !== '') {
-                let supported = ['english', 'italian', 'spanish', 'french']
+                let supported = ['english', 'italian', 'spanish', 'french' , 'latin']
                 if (supported.indexOf(language) !== -1) {
                     bip39.setDefaultWordlist(language)
                 }
+            }else{
+                bip39.setDefaultWordlist('english')
             }
             const mnemonic = bip39.generateMnemonic(256)
             response(mnemonic)
