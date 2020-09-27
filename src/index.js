@@ -388,7 +388,7 @@ module.exports = class ScryptaCore {
         }
         return path
     }
-    
+
     //CRYPT AND ENCRYPT FUNCTIONS
     async cryptData(data, password) {
         return new Promise(response => {
@@ -465,11 +465,11 @@ module.exports = class ScryptaCore {
     async generateMnemonic(language) {
         return new Promise(response => {
             if (language !== '') {
-                let supported = ['english', 'italian', 'spanish', 'french' , 'latin']
+                let supported = ['english', 'italian', 'spanish', 'french', 'latin']
                 if (supported.indexOf(language) !== -1) {
                     bip39.setDefaultWordlist(language)
                 }
-            }else{
+            } else {
                 bip39.setDefaultWordlist('english')
             }
             const mnemonic = bip39.generateMnemonic(256)
@@ -790,7 +790,7 @@ module.exports = class ScryptaCore {
             let retries = 0
             let wallet = await this.importPrivateKey(privkey, 'TEMP', false)
             let balance = await this.get('/balance/' + wallet.pub)
-            if(this.debug){
+            if (this.debug) {
                 console.log('CHECKING ADDRESS' + wallet.pub)
             }
             if (balance.balance >= amount) {
@@ -811,7 +811,7 @@ module.exports = class ScryptaCore {
                     response(false)
                 }
             } else {
-                if(this.debug){
+                if (this.debug) {
                     console.log('BALANCE IS LOW')
                 }
                 response(false)
@@ -1187,59 +1187,70 @@ module.exports = class ScryptaCore {
 
                                     let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
 
-                                    let tx = {
-                                        transaction: transaction,
-                                        signature: signtx.signature,
-                                        pubkey: decrypted.key,
-                                        sxid: signtx.hash
+                                    let timecheck = true
+                                    for (let ji in transaction["inputs"]) {
+                                        if (transaction["inputs"][ji].time >= transaction["time"]) {
+                                            timecheck = false
+                                        }
                                     }
 
-                                    let validatetransaction = await app.post('/sidechain/validate',
-                                        {
-                                            transaction: tx,
-                                            address: address,
-                                            sxid: signtx.hash,
+                                    if (timecheck) {
+                                        let tx = {
+                                            transaction: transaction,
                                             signature: signtx.signature,
-                                            pubkey: decrypted.key
+                                            pubkey: decrypted.key,
+                                            sxid: signtx.hash
                                         }
-                                    )
 
-                                    if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
-                                        let sent = false
-                                        let txs = []
-                                        let retry = 0
-                                        while (sent === false) {
-                                            let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
-                                            if (written !== false && written.txs !== undefined && written.txs.length >= 1 && written.txs[0] !== null) {
-                                                for (let x in usedtx) {
-                                                    await app.pushSXIDtoCache(usedtx[x])
-                                                }
-                                                let vout = 0
-                                                for (let x in outputs) {
-                                                    let unspent = {
-                                                        sxid: tx.sxid,
-                                                        vout: vout,
-                                                        address: x,
-                                                        amount: outputs[x],
-                                                        sidechain: tx.transaction['sidechain']
+                                        let validatetransaction = await app.post('/sidechain/validate',
+                                            {
+                                                transaction: tx,
+                                                address: address,
+                                                sxid: signtx.hash,
+                                                signature: signtx.signature,
+                                                pubkey: decrypted.key
+                                            }
+                                        )
+
+                                        if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
+                                            let sent = false
+                                            let txs = []
+                                            let retry = 0
+                                            while (sent === false) {
+                                                let written = await app.write(key, password, JSON.stringify(tx), '', '', 'chain://')
+                                                if (written !== false && written.txs !== undefined && written.txs.length >= 1 && written.txs[0] !== null) {
+                                                    for (let x in usedtx) {
+                                                        await app.pushSXIDtoCache(usedtx[x])
                                                     }
-                                                    if (unspent.address === address) {
-                                                        await app.pushUSXOtoCache(unspent)
+                                                    let vout = 0
+                                                    for (let x in outputs) {
+                                                        let unspent = {
+                                                            sxid: tx.sxid,
+                                                            vout: vout,
+                                                            address: x,
+                                                            amount: outputs[x],
+                                                            sidechain: tx.transaction['sidechain']
+                                                        }
+                                                        if (unspent.address === address) {
+                                                            await app.pushUSXOtoCache(unspent)
+                                                        }
+                                                        vout++
                                                     }
-                                                    vout++
+                                                    sent = true
+                                                    txs = written.txs
+                                                } else {
+                                                    retry++
+                                                    await app.sleep(2000)
                                                 }
-                                                sent = true
-                                                txs = written.txs
+                                                if (retry > 10) {
+                                                    sent = true
+                                                }
+                                            }
+                                            if (txs.length >= 1) {
+                                                return Promise.resolve(tx.sxid)
                                             } else {
-                                                retry++
-                                                await app.sleep(2000)
+                                                return Promise.resolve(false)
                                             }
-                                            if (retry > 10) {
-                                                sent = true
-                                            }
-                                        }
-                                        if (txs.length >= 1) {
-                                            return Promise.resolve(tx.sxid)
                                         } else {
                                             return Promise.resolve(false)
                                         }
@@ -1577,7 +1588,7 @@ module.exports = class ScryptaCore {
                 let res = await axios.post(node + '/contracts/run', request)
                 response(res.data)
             } catch (e) {
-                if(this.debug === true){
+                if (this.debug === true) {
                     console.log(e)
                 }
                 response(false)
