@@ -1294,8 +1294,8 @@ module.exports = class ScryptaCore {
                         let address = SIDS[0]
 
                         if (uuid === '') {
-                            var Uuid = require('uuid/v4')
-                            uuid = Uuid().replace(new RegExp('-', 'g'), '.')
+                            const { v4: uuidv4 } = require('uuid');
+                            uuid = uuidv4().replace(new RegExp('-', 'g'), '.')
                         }
 
                         if (collection !== '') {
@@ -1469,13 +1469,21 @@ module.exports = class ScryptaCore {
 
                         }
                     } else {
+                        if(this.debug){
+                            console.log('WRONG PASSWORD')
+                        }
                         return Promise.resolve(false);
                     }
                 } catch (error) {
-                    // console.log(error)
+                    if(this.debug){
+                        console.log(error)
+                    }
                     return Promise.resolve(false);
                 }
             } else {
+                if(this.debug){
+                    console.log('CAN\'T RETURN KEY')
+                }
                 return false
             }
         }
