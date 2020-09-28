@@ -1526,15 +1526,16 @@ module.exports = class ScryptaCore {
             let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex');
             //GETTING PUBKEY FROM PRIVATEKEY
             let privKey = ck.privateKey
+            let privkeybuf = Buffer.from(privKey)
             //SIGN MESSAGE
-            const sigObj = secp256k1.ecdsaSign(msg, privKey)
+            const sigObj = secp256k1.ecdsaSign(msg, privkeybuf)
             const pubKey = secp256k1.publicKeyCreate(privKey)
-
+            
             response({
                 message: message,
                 hash: hash.toString(CryptoJS.enc.Hex),
-                signature: sigObj.signature.toString('hex'),
-                pubkey: pubKey.toString('hex'),
+                signature: Buffer.from(sigObj.signature).toString('hex'),
+                pubkey: Buffer.from(pubKey).toString('hex'),
                 address: ck.publicAddress
             })
         })
