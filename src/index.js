@@ -1536,11 +1536,11 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             //CREATE HASH FROM MESSAGE
             let hash = CryptoJS.SHA256(message);
-            let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
+            let msgbuf = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
             //VERIFY MESSAGE
-            let buf = Buffer.from(signature, 'hex')
+            let sigbuf = Buffer.from(signature, 'hex')
             let pubKey = Buffer.from(pubkey, 'hex')
-            let verified = secp256k1.ecdsaVerify(msg, buf, pubKey)
+            let verified = secp256k1.ecdsaVerify(sigbuf, msgbuf, pubKey)
             let address = await this.getAddressFromPubKey(pubkey)
             if (verified === true) {
                 response({
