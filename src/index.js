@@ -1519,7 +1519,7 @@ module.exports = class ScryptaCore {
             //GETTING PUBKEY FROM PRIVATEKEY
             let privKey = ck.privateKey
             //SIGN MESSAGE
-            const sigObj = secp256k1.sign(msg, privKey)
+            const sigObj = secp256k1.ecdsaSign(msg, privKey)
             const pubKey = secp256k1.publicKeyCreate(privKey)
 
             response({
@@ -1540,7 +1540,7 @@ module.exports = class ScryptaCore {
             //VERIFY MESSAGE
             let buf = Buffer.from(signature, 'hex')
             let pubKey = Buffer.from(pubkey, 'hex')
-            let verified = secp256k1.verify(msg, buf, pubKey)
+            let verified = secp256k1.ecdsaVerify(msg, buf, pubKey)
             let address = await this.getAddressFromPubKey(pubkey)
             if (verified === true) {
                 response({
