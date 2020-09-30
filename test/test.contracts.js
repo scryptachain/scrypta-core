@@ -7,7 +7,6 @@ describe('Contracts', async function() {
     it('Should create a contract request', async function(){
         this.timeout(35000)
         let address = await scrypta.createAddress('123456')
-        scrypta.staticnodes = true
         scrypta.debug = true
         let request = await scrypta.createContractRequest(address.walletstore, '123456', { contract: "LcD7AGaY74xvVxDg3NkKjfP6QpG8Pmxpnu", function: "search", params: {name: "turinglabs"} })
         let response = await scrypta.sendContractRequest(request)

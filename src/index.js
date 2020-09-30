@@ -174,10 +174,10 @@ module.exports = class ScryptaCore {
                 }
                 while (connected === false) {
                     let node = await this.returnFirstNode()
-                    if(this.debug === true){
-                        console.log('TRYING TO CONTACT ' + node)
-                    }
                     if (node !== false) {
+                        if (this.debug === true) {
+                            console.log('TRYING TO CONTACT ' + node)
+                        }
                         connected = true
                         app.idanode = node
                         if (app.debug === true) {
@@ -248,7 +248,13 @@ module.exports = class ScryptaCore {
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
-                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 20000 }).then(async check => {
+                    if (this.debug === true) {
+                        console.log('HANDSHAKING WITH ' + checknodes[i])
+                    }
+                    if(this.debug){
+                        var inittime = new Date().getTime()
+                    }
+                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2000 }).then(async check => {
                         let checksum = await app.returnLastChecksum(check.data.version)
                         let isValid = true
                         if (checksum !== false) {
@@ -256,17 +262,27 @@ module.exports = class ScryptaCore {
                                 isValid = false
                             }
                         }
-                        if (check.data.blocks !== undefined && connected === false && check.data.toindex === 0 && isValid) {
+                        if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && isValid) {
                             connected = true
                             if (check.config.url !== undefined) {
+                                var restime = new Date().getTime()
+                                if(this.debug){
+                                    let elapsed = restime - inittime
+                                    console.log('ELAPSED ' + elapsed + 'ms TO CONNECT')
+                                }
                                 response(check.config.url.replace('/wallet/getinfo', ''))
                             }
                         }
                     }).catch(err => {
+                        if (this.debug) {
+                            console.log(err)
+                        }
                         response(false)
                     })
                 } catch (err) {
-                    // console.log(err)
+                    if (this.debug) {
+                        console.log(err)
+                    }
                 }
             }
             setTimeout(function () {
@@ -1622,30 +1638,30 @@ module.exports = class ScryptaCore {
                     }
                     let maintainers = false
                     while (maintainers === false) {
-                        try{
+                        try {
                             maintainers = await this.post('/contracts/run', indexrequest)
-                        }catch(e){
-                            if(this.debug === true){
+                        } catch (e) {
+                            if (this.debug === true) {
                                 console.log('ERROR WHILE CONTACTING ' + node)
                             }
                         }
                     }
                     if (maintainers.error === undefined) {
-                        if(this.debug === true){
+                        if (this.debug === true) {
                             console.log('MAINTAINERS FOUND', maintainers)
                         }
                         let res = false
                         let result = false
                         for (let k in maintainers) {
                             if (res === false) {
-                                try{
+                                try {
                                     let noderes = await this.post('/contracts/run', request, maintainers[k].url)
                                     if (noderes !== false) {
                                         res = true
                                         result = noderes
                                     }
-                                }catch(e){
-                                    if(this.debug === true){
+                                } catch (e) {
+                                    if (this.debug === true) {
                                         console.log('ERROR WHILE CONTACTING ' + node)
                                     }
                                 }
