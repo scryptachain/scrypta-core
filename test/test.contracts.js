@@ -7,10 +7,11 @@ describe('Contracts', async function() {
     it('Should create a contract request', async function(){
         this.timeout(35000)
         let address = await scrypta.createAddress('123456')
-        let request = await scrypta.createContractRequest(address.walletstore, '123456', { contract: "LgSAtP3gPURByanZSM32kfEu9C1uyQ6Kfg", function: "index", params: {contract: "LgSAtP3gPURByanZSM32kfEu9C1uyQ6Kfg", version: "latest"} })
-        console.log(request)
-        let response = await scrypta.sendContractRequest(request, 'https://idanodejs01.scryptachain.org')
-        console.log(response)
-        assert.notStrictEqual(false, request);
+        scrypta.staticnodes = true
+        scrypta.debug = true
+        let request = await scrypta.createContractRequest(address.walletstore, '123456', { contract: "LcD7AGaY74xvVxDg3NkKjfP6QpG8Pmxpnu", function: "search", params: {name: "turinglabs"} })
+        let response = await scrypta.sendContractRequest(request)
+        console.log('CONTRACT RESPONSE IS', response)
+        assert.notStrictEqual(false, response);
     })
 });

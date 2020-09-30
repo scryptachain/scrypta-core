@@ -174,6 +174,9 @@ module.exports = class ScryptaCore {
                 }
                 while (connected === false) {
                     let node = await this.returnFirstNode()
+                    if(this.debug === true){
+                        console.log('TRYING TO CONTACT ' + node)
+                    }
                     if (node !== false) {
                         connected = true
                         app.idanode = node
@@ -1469,19 +1472,19 @@ module.exports = class ScryptaCore {
 
                         }
                     } else {
-                        if(this.debug){
+                        if (this.debug) {
                             console.log('WRONG PASSWORD')
                         }
                         return Promise.resolve(false);
                     }
                 } catch (error) {
-                    if(this.debug){
+                    if (this.debug) {
                         console.log(error)
                     }
                     return Promise.resolve(false);
                 }
             } else {
-                if(this.debug){
+                if (this.debug) {
                     console.log('CAN\'T RETURN KEY')
                 }
                 return false
@@ -1530,7 +1533,7 @@ module.exports = class ScryptaCore {
             //SIGN MESSAGE
             const sigObj = secp256k1.ecdsaSign(msg, privkeybuf)
             const pubKey = secp256k1.publicKeyCreate(privKey)
-            
+
             response({
                 message: message,
                 hash: hash.toString(CryptoJS.enc.Hex),
@@ -1591,11 +1594,72 @@ module.exports = class ScryptaCore {
         })
     }
 
-    sendContractRequest(request, node) {
+    sendContractRequest(request, node = '') {
         return new Promise(async response => {
             try {
-                let res = await axios.post(node + '/contracts/run', request)
-                response(res.data)
+                if (node !== '') {
+                    let res = await axios.post(node + '/contracts/run', request)
+                    response(res.data)
+                } else {
+                    if (this.debug === true) {
+                        console.log('CHECKING FOR MAINTAINERS')
+                    }
+                    this.staticnodes = true
+                    let details = JSON.parse(Buffer.from(request.message, 'hex').toString('utf-8'))
+                    let sid = await this.createAddress('TEMP', false)
+                    console.log('DETAILS ORIGINAL REQUEST', details)
+                    let indexrequest = await this.createContractRequest(
+                        sid.walletstore,
+                        'TEMP',
+                        {
+                            contract: "LgSAtP3gPURByanZSM32kfEu9C1uyQ6Kfg",
+                            function: "index",
+                            params: { contract: details.contract, version: 'latest' }
+                        }
+                    )
+                    if (this.debug === true) {
+                        console.log('INDEXER REQUEST', JSON.stringify(indexrequest))
+                    }
+                    let maintainers = false
+                    while (maintainers === false) {
+                        try{
+                            maintainers = await this.post('/contracts/run', indexrequest)
+                        }catch(e){
+                            if(this.debug === true){
+                                console.log('ERROR WHILE CONTACTING ' + node)
+                            }
+                        }
+                    }
+                    if (maintainers.error === undefined) {
+                        if(this.debug === true){
+                            console.log('MAINTAINERS FOUND', maintainers)
+                        }
+                        let res = false
+                        let result = false
+                        for (let k in maintainers) {
+                            if (res === false) {
+                                try{
+                                    let noderes = await this.post('/contracts/run', request, maintainers[k].url)
+                                    if (noderes !== false) {
+                                        res = true
+                                        result = noderes
+                                    }
+                                }catch(e){
+                                    if(this.debug === true){
+                                        console.log('ERROR WHILE CONTACTING ' + node)
+                                    }
+                                }
+                            }
+                        }
+
+                        response(result)
+                    } else {
+                        if (this.debug === true) {
+                            console.log('NO MAINTAINERS FOUND FOR CONTRACT ' + details.contract)
+                        }
+                        response(false)
+                    }
+                }
             } catch (e) {
                 if (this.debug === true) {
                     console.log(e)
