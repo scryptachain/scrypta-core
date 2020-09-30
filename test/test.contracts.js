@@ -13,4 +13,10 @@ describe('Contracts', async function() {
         console.log('CONTRACT RESPONSE IS', response)
         assert.notStrictEqual(false, response);
     })
+    it('Should return average time from contracts', async function(){
+        this.timeout(35000)
+        let response = await scrypta.gettime()
+        console.log(response)
+        assert.notStrictEqual(false, response);
+    })
 });

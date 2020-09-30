@@ -408,6 +408,22 @@ module.exports = class ScryptaCore {
         return path
     }
 
+    gettime(){
+        return new Promise(async response => {
+            let sid = await this.createAddress('TEMPORARY', false)
+            let averageTimeRequest = await this.createContractRequest(sid.walletstore, 'TEMPORARY', 
+                {
+                    contract: "LLsNWqyhrH2wHph879VXTFaNLLYt43Jjq6", 
+                    version: "latest", 
+                    function: "getAverageTime",
+                    params: ""
+                }
+            )
+            let averageTime = await this.sendContractRequest(averageTimeRequest)
+            response(averageTime)
+        })
+    }
+
     //CRYPT AND ENCRYPT FUNCTIONS
     async cryptData(data, password) {
         return new Promise(response => {
