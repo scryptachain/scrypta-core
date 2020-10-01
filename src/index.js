@@ -1119,7 +1119,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '') {
+    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '') {
         const app = this
         let wallet = await this.returnKey(key)
         if (wallet !== false) {
@@ -1147,7 +1147,16 @@ module.exports = class ScryptaCore {
                         let usedtx = []
                         let checkto = await app.get('/validate/' + to)
                         if (checkto.data.isvalid === false) {
+                            if(this.debug){
+                                console.log('RECEIVER IS INVALID')
+                            }
                             return Promise.resolve(false)
+                        }
+                        let txtime 
+                        if(time !== ''){
+                            txtime = parseInt(time)
+                        }else{
+                            txtime = await app.gettime()
                         }
 
                         for (let i in unspent) {
@@ -1159,12 +1168,19 @@ module.exports = class ScryptaCore {
                                 delete unspent[i].redeemblock
                                 delete unspent[i].redeemed
                                 let cache = await this.returnSXIDCache()
-                                if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
+                                if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1 && unspent[i].time < txtime) {
                                     inputs.push(unspent[i])
                                     usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
                                     let toadd = app.math.round(unspent[i].amount, decimals)
                                     amountinput = app.math.sum(amountinput, toadd)
                                     amountinput = app.math.round(amountinput, decimals)
+                                }else{
+                                    if(this.debug){
+                                        console.log('CAN\'T USE UNSPENT')
+                                        if(unspent[i].time > txtime){
+                                            console.log('INPUT IS IN THE FUTURE')
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1176,6 +1192,9 @@ module.exports = class ScryptaCore {
 
                             if (to === sidechainObj.address && sidechainObj.data.burnable === false) {
 
+                                if(this.debug){
+                                    console.log('ASSETS NOT BURNABLE')
+                                }
                                 return Promise.resolve(false)
 
                             } else {
@@ -1218,8 +1237,11 @@ module.exports = class ScryptaCore {
                                     transaction["inputs"] = inputs
                                     transaction["outputs"] = outputs
                                     transaction["memo"] = memo
-                                    transaction["time"] = new Date().getTime()
+                                    transaction["time"] = txtime
 
+                                    if(this.debug){
+                                        console.log('TX TIME IS' + transaction['time'])
+                                    }
                                     let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
 
                                     let timecheck = true
@@ -1294,17 +1316,28 @@ module.exports = class ScryptaCore {
                                     }
 
                                 } else {
+                                    if(this.debug){
+                                        console.log('NO INPUTS OR OUTPUTS')
+                                    }
                                     return Promise.resolve(false)
                                 }
                             }
                         } else {
+                            if(this.debug){
+                                console.log('NOT ENOUGH FUNDS')
+                            }
                             return Promise.resolve(false)
                         }
                     } else {
-                        // console.log('NO UNSPENT')
+                        if(this.debug){
+                            console.log('NO UNSPENTS')
+                        }
                         return false
                     }
                 } else {
+                    if(this.debug){
+                        console.log('WRONG PASSWORD')
+                    }
                     return false
                 }
             } else {
@@ -1639,7 +1672,9 @@ module.exports = class ScryptaCore {
                     this.staticnodes = true
                     let details = JSON.parse(Buffer.from(request.message, 'hex').toString('utf-8'))
                     let sid = await this.createAddress('TEMP', false)
-                    console.log('DETAILS ORIGINAL REQUEST', details)
+                    if(this.debug){
+                        console.log('DETAILS ORIGINAL REQUEST', details)
+                    }
                     let indexrequest = await this.createContractRequest(
                         sid.walletstore,
                         'TEMP',

@@ -1,6 +1,6 @@
 {
   "name": "@scrypta/core",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
@@ -13,6 +13,7 @@
     "test:contracts": "mocha test/test.contracts.js",
     "test:static": "node test/test.static.js",
     "test:p2p": "node test/test.p2p.js",
+    "test:planum": "node test/test.planum.js",
     "pub": "npm publish --access public"
   },
   "keywords": [
