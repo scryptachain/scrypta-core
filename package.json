@@ -1,6 +1,6 @@
 {
   "name": "@scrypta/core",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "Scrypta Javascript Library for build Blockchain enabled applications.",
   "private": false,
   "main": "src/index.js",
@@ -14,6 +14,7 @@
     "test:static": "node test/test.static.js",
     "test:p2p": "node test/test.p2p.js",
     "test:planum": "node test/test.planum.js",
+    "test:tx": "node test/test.transactions.js",
     "pub": "npm publish --access public"
   },
   "keywords": [
@@ -52,6 +53,7 @@
     "secure-random": "^1.1.2",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
+    "transaction-hex-decoder": "^1.0.2",
     "uuid": "^8.3.0",
     "yargs": "^16.0.3"
   },

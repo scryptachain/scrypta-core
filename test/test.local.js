@@ -2,7 +2,7 @@ let ScryptaCore = require('../src/index.js')
 let scrypta = new ScryptaCore
 var assert = require('assert')
 const password = '123456'
-
+scrypta.debug = true
 describe('Addresses', async function() {
     it('Should hash something', async function (){
         let hash = await scrypta.hash('123456')

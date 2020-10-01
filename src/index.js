@@ -251,10 +251,10 @@ module.exports = class ScryptaCore {
                     if (this.debug === true) {
                         console.log('HANDSHAKING WITH ' + checknodes[i])
                     }
-                    if(this.debug){
+                    if (this.debug) {
                         var inittime = new Date().getTime()
                     }
-                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2000 }).then(async check => {
+                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2500 }).then(async check => {
                         let checksum = await app.returnLastChecksum(check.data.version)
                         let isValid = true
                         if (checksum !== false) {
@@ -266,7 +266,7 @@ module.exports = class ScryptaCore {
                             connected = true
                             if (check.config.url !== undefined) {
                                 var restime = new Date().getTime()
-                                if(this.debug){
+                                if (this.debug) {
                                     let elapsed = restime - inittime
                                     console.log('ELAPSED ' + elapsed + 'ms TO CONNECT')
                                 }
@@ -381,6 +381,9 @@ module.exports = class ScryptaCore {
     }
 
     // UTILITIES FUNCTION
+
+    hexToBytes(b) { for (var a = [], c = 0; c < b.length; c += 2)a.push(parseInt(b.substr(c, 2), 16)); return a }
+
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -408,13 +411,13 @@ module.exports = class ScryptaCore {
         return path
     }
 
-    gettime(){
+    gettime() {
         return new Promise(async response => {
             let sid = await this.createAddress('TEMPORARY', false)
-            let averageTimeRequest = await this.createContractRequest(sid.walletstore, 'TEMPORARY', 
+            let averageTimeRequest = await this.createContractRequest(sid.walletstore, 'TEMPORARY',
                 {
-                    contract: "LLsNWqyhrH2wHph879VXTFaNLLYt43Jjq6", 
-                    version: "latest", 
+                    contract: "LLsNWqyhrH2wHph879VXTFaNLLYt43Jjq6",
+                    version: "latest",
                     function: "getAverageTime",
                     params: ""
                 }
@@ -890,6 +893,118 @@ module.exports = class ScryptaCore {
         }
     }
 
+    async createRawTransaction(from, outputs = '', metadata = '', fees = 0.001) {
+        var trx = Trx.transaction();
+        var MAX_OPRETURN = this.MAX_OPRETURN
+        var unspent = []
+        var inputs = []
+        var cache = await this.returnUTXOCache()
+        if (cache !== undefined && cache.length > 0) {
+            for (var x = 0; x < cache.length; x++) {
+                if (this.debug) {
+                    console.log(cache[x])
+                }
+                if (cache[x].address === SIDS[0]) {
+                    unspent.push(cache[x])
+                }
+            }
+        }
+        var listunspent = await this.listUnspent(from)
+        for (var x = 0; x < listunspent.length; x++) {
+            unspent.push(listunspent[x])
+        }
+        if (this.debug) {
+            console.log('UNSPENT', unspent, unspent.length)
+        }
+        if (unspent.length > 0) {
+            var inputamount = 0;
+            var amount = 0
+
+            for (let k in outputs) {
+                amount += outputs[k]
+            }
+
+            var amountneed = amount + fees;
+            for (var i = 0; i < unspent.length; i++) {
+                if (inputamount <= amountneed) {
+                    var txid = unspent[i]['txid'];
+                    var index = unspent[i]['vout'];
+                    var script = unspent[i]['scriptPubKey'];
+                    var cache = await this.returnTXIDCache()
+                    if (cache.indexOf(txid + ':' + index) === -1 && inputs.indexOf(txid + ':' + index) === -1 && unspent[i]['address'] === from) {
+                        trx.addinput(txid, index, script);
+                        inputamount += unspent[i]['amount']
+                        inputs.push(txid + ':' + index)
+                    } else if (this.debug) {
+                        console.log('INPUT ALREADY IN CACHE ' + txid + ':' + index)
+                    }
+                }
+            }
+            if (inputamount >= amountneed) {
+                var change = inputamount - amountneed;
+                if (Object.keys(outputs).length > 0 && outputs[from] === undefined) {
+                    let keys = Object.keys(outputs)
+                    for (let k in keys) {
+                        if (outputs[keys[k]] > 0.00001) {
+                            if (amount > 0.00001) {
+                                trx.addoutput(keys[k], outputs[keys[k]]);
+                            }
+                        }
+                    }
+                    if (change > 0.00001) {
+                        trx.addoutput(from, change);
+                    }
+                } else {
+                    var realamount = inputamount - fees
+                    if (realamount > 0.00001) {
+                        if (this.debug === true) {
+                            console.log('SENDING INPUT - FEES TO SENDER, BECAUSE SENDER AND RECEIVER ARE SAME ACCOUNT', realamount)
+                        }
+                        trx.addoutput(from, realamount)
+                    }
+                }
+
+                if (metadata !== '') {
+                    if (metadata.length <= MAX_OPRETURN) {
+                        //console.log('ADDING METADATA TO TX', metadata)
+                        trx.addmetadata(metadata);
+                    } else {
+                        //console.log('METADATA TOO LONG')
+                    }
+                }
+                let transaction = {
+                    inputs: trx.inputs,
+                    outputs: trx.outputs
+                }
+
+                let hexed = Buffer.from(JSON.stringify(transaction)).toString('hex')
+
+                return Promise.resolve({
+                    serialized: trx.serialize(),
+                    hexed: hexed
+                })
+
+            } else {
+                if (this.debug) { console.log('NOT ENOUGH FUNDS') }
+                return Promise.resolve(false) //NOT ENOUGH FUNDS
+            }
+        } else {
+            // console.log('NO UNSPENTS')
+            return Promise.resolve(false) //NOT ENOUGH FUNDS
+        }
+    }
+
+    async signRawTransaction(rawtransaction, privkey) {
+        return new Promise(async response => {
+            let transaction = JSON.parse(Buffer.from(rawtransaction,'hex').toString())
+            var trx = Trx.transaction();
+            trx.inputs = transaction.inputs
+            trx.outputs = transaction.outputs
+            let signed = trx.sign(privkey)
+            response(signed)
+        })
+    }
+
     async build(key, password, send = false, to, amount, metadata = '', fees = 0.001) {
         var SID = key;
         var MAX_OPRETURN = this.MAX_OPRETURN
@@ -929,7 +1044,7 @@ module.exports = class ScryptaCore {
                             var index = unspent[i]['vout'];
                             var script = unspent[i]['scriptPubKey'];
                             var cache = await this.returnTXIDCache()
-                            if (cache.indexOf(txid + ':' + index) === -1 && inputs.indexOf(txid + ':' + index) === -1) {
+                            if (cache.indexOf(txid + ':' + index) === -1 && inputs.indexOf(txid + ':' + index) === -1 && unspent[i]['address'] === from) {
                                 trx.addinput(txid, index, script);
                                 inputamount += unspent[i]['amount']
                                 inputs.push(txid + ':' + index)
@@ -1147,15 +1262,15 @@ module.exports = class ScryptaCore {
                         let usedtx = []
                         let checkto = await app.get('/validate/' + to)
                         if (checkto.data.isvalid === false) {
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('RECEIVER IS INVALID')
                             }
                             return Promise.resolve(false)
                         }
-                        let txtime 
-                        if(time !== ''){
+                        let txtime
+                        if (time !== '') {
                             txtime = parseInt(time)
-                        }else{
+                        } else {
                             txtime = await app.gettime()
                         }
 
@@ -1174,10 +1289,10 @@ module.exports = class ScryptaCore {
                                     let toadd = app.math.round(unspent[i].amount, decimals)
                                     amountinput = app.math.sum(amountinput, toadd)
                                     amountinput = app.math.round(amountinput, decimals)
-                                }else{
-                                    if(this.debug){
+                                } else {
+                                    if (this.debug) {
                                         console.log('CAN\'T USE UNSPENT')
-                                        if(unspent[i].time > txtime){
+                                        if (unspent[i].time > txtime) {
                                             console.log('INPUT IS IN THE FUTURE')
                                         }
                                     }
@@ -1192,7 +1307,7 @@ module.exports = class ScryptaCore {
 
                             if (to === sidechainObj.address && sidechainObj.data.burnable === false) {
 
-                                if(this.debug){
+                                if (this.debug) {
                                     console.log('ASSETS NOT BURNABLE')
                                 }
                                 return Promise.resolve(false)
@@ -1239,7 +1354,7 @@ module.exports = class ScryptaCore {
                                     transaction["memo"] = memo
                                     transaction["time"] = txtime
 
-                                    if(this.debug){
+                                    if (this.debug) {
                                         console.log('TX TIME IS' + transaction['time'])
                                     }
                                     let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
@@ -1316,26 +1431,26 @@ module.exports = class ScryptaCore {
                                     }
 
                                 } else {
-                                    if(this.debug){
+                                    if (this.debug) {
                                         console.log('NO INPUTS OR OUTPUTS')
                                     }
                                     return Promise.resolve(false)
                                 }
                             }
                         } else {
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('NOT ENOUGH FUNDS')
                             }
                             return Promise.resolve(false)
                         }
                     } else {
-                        if(this.debug){
+                        if (this.debug) {
                             console.log('NO UNSPENTS')
                         }
                         return false
                     }
                 } else {
-                    if(this.debug){
+                    if (this.debug) {
                         console.log('WRONG PASSWORD')
                     }
                     return false
@@ -1672,7 +1787,7 @@ module.exports = class ScryptaCore {
                     this.staticnodes = true
                     let details = JSON.parse(Buffer.from(request.message, 'hex').toString('utf-8'))
                     let sid = await this.createAddress('TEMP', false)
-                    if(this.debug){
+                    if (this.debug) {
                         console.log('DETAILS ORIGINAL REQUEST', details)
                     }
                     let indexrequest = await this.createContractRequest(

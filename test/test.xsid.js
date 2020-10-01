@@ -14,7 +14,6 @@ describe('Addresses', async function () {
         console.log('DERIVING', derive)
     })
 
-    /*
     it('Should create an extended testnet ScryptaID', async function () {
         this.timeout(35000)
         scrypta.testnet = true
@@ -54,5 +53,5 @@ describe('Addresses', async function () {
         console.log(derivexpriv)
         let derive = await scrypta.deriveKeyfromXPub(xsid.xpub, "m/0/0/2")
         console.log(derive)
-    }) */
+    })
 });

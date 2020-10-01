@@ -145,7 +145,7 @@ module.exports = class BitJS {
 			var o = {};
 			var buf = [];
 			var addrDecoded = btrx.addressDecode(address)
-			o.value = new BigInteger('' + Math.round((value*1) * 1e8), 10);
+			o.value = new BigInteger('' + Math.round((value*1) * 1e8), 10).toByteArraySigned();
 			buf.push(118); //OP_DUP
 			buf.push(169);  //OP_HASH160
 			buf.push(addrDecoded.length);
@@ -411,6 +411,9 @@ module.exports = class BitJS {
 		/* sign inputs */
 		btrx.sign = function(wif, sigHashType) {
 			var shType = sigHashType || 1;
+			for(var i = 0; i < this.outputs.length; i++){
+				this.outputs[i].value = new BigInteger.fromByteArraySigned(this.outputs[i].value)
+			}
 			for (var i = 0; i < this.inputs.length; i++) {
 				this.signinput(i, wif, shType);
 			}
