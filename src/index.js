@@ -515,7 +515,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    buildxSid(password, language = '', saveKey = true, mnemonic = '') {
+    buildxSid(password, language = '', saveKey = true, mnemonic = '', label = '') {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
@@ -538,7 +538,8 @@ module.exports = class ScryptaCore {
                     if (!check) {
                         await db.put('xsid', {
                             xpub: xpub,
-                            wallet: walletstore
+                            wallet: walletstore,
+                            label: label
                         })
                     }
                 }
