@@ -515,11 +515,13 @@ module.exports = class ScryptaCore {
         })
     }
 
-    buildxSid(password, language = '', saveKey = true) {
+    buildxSid(password, language = '', saveKey = true, mnemonic = '') {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
-            const mnemonic = await this.generateMnemonic(language)
+            if(mnemonic === ''){
+                mnemonic = await this.generateMnemonic(language)
+            }
             let seed = await bip39.mnemonicToSeed(mnemonic)
             var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
             let xprv = hdkey.privateExtendedKey

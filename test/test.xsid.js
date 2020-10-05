@@ -14,13 +14,15 @@ describe('Addresses', async function () {
         console.log('DERIVING', derive)
     })
 
-    it('Should create an extended testnet ScryptaID', async function () {
+    it('Should create an extended seed and rigenerate same from mnemonic', async function () {
         this.timeout(35000)
         scrypta.testnet = true
         let xsid = await scrypta.buildxSid('123456', 'latin', false)
         console.log(xsid)
-        let derive = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/1")
-        console.log(derive)
+        let xsidnew = await scrypta.buildxSid("123456", 'latin', false, xsid.mnemonic)
+        
+        console.log('SAME XPUB?', xsid.xpub === xsidnew.xpub)
+        console.log('XPUBS ARE',xsid.xpub, xsidnew.xpub)
     })
 
     it('Should generate same key from xpub or xprv', async function () {
