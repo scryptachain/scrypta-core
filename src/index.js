@@ -532,14 +532,9 @@ module.exports = class ScryptaCore {
                 var walletstore = xpub + ':' + wallethex;
 
                 if (saveKey === true) {
-                    let check = await db.get('xsid', 'master', xpub)
+                    let check = await db.get('xsid', 'xpub', xpub)
                     if (!check) {
                         await db.put('xsid', {
-                            xpub: xpub,
-                            wallet: walletstore
-                        })
-                    } else {
-                        await db.update('xsid', 'master', xpub, {
                             xpub: xpub,
                             wallet: walletstore
                         })
@@ -564,7 +559,7 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
             if (xpub.length === 111) {
                 const db = new ScryptaDB(app.isBrowser)
-                let doc = await db.get('xsid', 'master', xpub)
+                let doc = await db.get('xsid', 'xpub', xpub)
                 if (doc !== undefined) {
                     response(doc.wallet)
                 } else {
@@ -2030,6 +2025,54 @@ module.exports = class ScryptaCore {
                 } else {
                     response(false)
                 }
+            }
+        })
+    }
+
+    returnDefaultxSid() {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            if (app.isBrowser) {
+                if (localStorage.getItem('xSID') !== null) {
+                    response(localStorage.getItem('xSID'))
+                } else {
+                    let wallet = await db.get('xsid')
+                    if (wallet !== false && wallet[0] !== undefined) {
+                        localStorage.setItem('xSID', wallet[0].wallet)
+                        response(wallet)
+                    } else {
+                        response(false)
+                    }
+                }
+            } else {
+                let wallet = await db.get('xSID')
+                if (wallet !== false && wallet[0] !== undefined) {
+                    response(wallet[0].wallet)
+                } else {
+                    response(false)
+                }
+            }
+        })
+    }
+
+    setDefaultxIdentity(xpub) {
+        const app = this
+        return new Promise(async response => {
+            const db = new ScryptaDB(app.isBrowser)
+            let wallet = await db.get('xsid', 'xpub', xpub)
+            if (wallet !== false && wallet !== null) {
+                if (app.isBrowser) {
+                    // console.log(wallet)
+                    localStorage.setItem('xSID', wallet.wallet)
+                    response(true)
+                } else {
+                    await db.destroy('identity')
+                    await db.put('identity', wallet)
+                    response(true)
+                }
+            } else {
+                response(false)
             }
         })
     }
