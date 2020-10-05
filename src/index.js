@@ -2040,7 +2040,7 @@ module.exports = class ScryptaCore {
                     let wallet = await db.get('xsid')
                     if (wallet !== false && wallet[0] !== undefined) {
                         localStorage.setItem('xSID', wallet[0].wallet)
-                        response(wallet)
+                        response(wallet[0].wallet)
                     } else {
                         response(false)
                     }
