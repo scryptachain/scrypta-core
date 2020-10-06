@@ -541,6 +541,12 @@ module.exports = class ScryptaCore {
                             wallet: walletstore,
                             label: label
                         })
+                    }else{
+                        await db.update('xsid', 'xpub', xpub, {
+                            xpub: xpub,
+                            wallet: walletstore,
+                            label: label
+                        })
                     }
                 }
 
@@ -692,7 +698,7 @@ module.exports = class ScryptaCore {
         return response;
     }
 
-    async buildWallet(password, pub, wallet, saveKey) {
+    async buildWallet(password, pub, wallet, saveKey, label = '') {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
@@ -705,16 +711,42 @@ module.exports = class ScryptaCore {
                 if (!check) {
                     await db.put('wallet', {
                         address: pub,
-                        wallet: walletstore
+                        wallet: walletstore,
+                        label: label
                     })
                 } else {
                     await db.update('wallet', 'address', pub, {
                         address: pub,
-                        wallet: walletstore
+                        wallet: walletstore,
+                        label: label
                     })
                 }
             }
 
+            response(walletstore)
+        })
+    }
+
+    async saveWallet(sid, label = '') {
+        const app = this
+        const db = new ScryptaDB(app.isBrowser)
+        return new Promise(async response => {
+            let SIDS = sid.split(':')
+            let pub = SIDS[0]
+            let check = await db.get('wallet', 'address', pub)
+            if (!check) {
+                await db.put('wallet', {
+                    address: pub,
+                    wallet: sid,
+                    label: label
+                })
+            } else {
+                await db.update('wallet', 'address', pub, {
+                    address: pub,
+                    wallet: sid,
+                    label: label
+                })
+            }
             response(walletstore)
         })
     }
