@@ -747,7 +747,7 @@ module.exports = class ScryptaCore {
                     label: label
                 })
             }
-            response(walletstore)
+            response(sid)
         })
     }
 
