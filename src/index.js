@@ -670,7 +670,7 @@ module.exports = class ScryptaCore {
     }
 
     //ADDRESS MANAGEMENT
-    async createAddress(password, saveKey = true) {
+    async createAddress(password, saveKey = true, label = '') {
         // LYRA WALLET
         let params = lyraInfo.mainnet
         if (this.testnet === true) {
@@ -687,7 +687,7 @@ module.exports = class ScryptaCore {
             key: lyrakey
         }
 
-        var walletstore = await this.buildWallet(password, lyrapub, wallet, saveKey)
+        var walletstore = await this.buildWallet(password, lyrapub, wallet, saveKey, label)
 
         var response = {
             pub: lyrapub,
