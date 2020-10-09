@@ -759,7 +759,7 @@ module.exports = class ScryptaCore {
                 let pub = SIDS[0]
                 let check = await db.get('xsid', 'xpub', pub)
                 if (!check) {
-                    await db.put('wallet', {
+                    await db.put('xsid', {
                         xpub: pub,
                         wallet: sid,
                         label: label
