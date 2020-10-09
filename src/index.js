@@ -527,10 +527,10 @@ module.exports = class ScryptaCore {
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
-            let wallethex = await this.cryptData(seed.toString('hex'), password)
+            let wallethex = await this.cryptData(mnemonic.toString('hex'), password)
             let check = await this.decryptData(wallethex, password)
 
-            if (check !== false && check === seed.toString('hex')) {
+            if (check !== false && check === mnemonic.toString('hex')) {
                 var walletstore = xpub + ':' + wallethex;
 
                 if (saveKey === true) {
@@ -587,8 +587,9 @@ module.exports = class ScryptaCore {
                 var xSIDS = key.split(':')
                 try {
                     let decrypted = await this.decryptData(xSIDS[1], password)
+                    let seed = await bip39.mnemonicToSeed(decrypted)
                     let xsid = await this.returnXKeysFromSeed(decrypted)
-                    xsid.seed = decrypted
+                    xsid.seed = seed
                     return Promise.resolve(xsid)
                 } catch (ex) {
                     // console.log('WRONG PASSWORD')
