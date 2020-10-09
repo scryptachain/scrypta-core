@@ -731,23 +731,43 @@ module.exports = class ScryptaCore {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
-            let SIDS = sid.split(':')
-            let pub = SIDS[0]
-            let check = await db.get('wallet', 'address', pub)
-            if (!check) {
-                await db.put('wallet', {
-                    address: pub,
-                    wallet: sid,
-                    label: label
-                })
-            } else {
-                await db.update('wallet', 'address', pub, {
-                    address: pub,
-                    wallet: sid,
-                    label: label
-                })
+            if(sid.indexOf('xpub') === -1){
+                let SIDS = sid.split(':')
+                let pub = SIDS[0]
+                let check = await db.get('wallet', 'address', pub)
+                if (!check) {
+                    await db.put('wallet', {
+                        address: pub,
+                        wallet: sid,
+                        label: label
+                    })
+                } else {
+                    await db.update('wallet', 'address', pub, {
+                        address: pub,
+                        wallet: sid,
+                        label: label
+                    })
+                }
+                response(sid)
+            }else{
+                let SIDS = sid.split(':')
+                let pub = SIDS[0]
+                let check = await db.get('xsid', 'xpub', pub)
+                if (!check) {
+                    await db.put('wallet', {
+                        xpub: pub,
+                        wallet: sid,
+                        label: label
+                    })
+                } else {
+                    await db.update('xsid', 'xpub', pub, {
+                        xpub: pub,
+                        wallet: sid,
+                        label: label
+                    })
+                }
+                response(sid)
             }
-            response(sid)
         })
     }
 
