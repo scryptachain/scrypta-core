@@ -865,7 +865,8 @@ module.exports = class ScryptaCore {
                 var SIDS = key.split(':');
                 try {
                     let decrypted = await this.decryptData(SIDS[1], password)
-                    return Promise.resolve(JSON.parse(decrypted));
+                    let parsed = JSON.parse(decrypted)
+                    return Promise.resolve(parsed);
                 } catch (ex) {
                     // console.log('WRONG PASSWORD')
                     return Promise.resolve(false);
@@ -1420,12 +1421,12 @@ module.exports = class ScryptaCore {
                                             timecheck = false
                                         }
                                     }
-
+                                    
                                     if (timecheck) {
                                         let tx = {
                                             transaction: transaction,
                                             signature: signtx.signature,
-                                            pubkey: decrypted.key,
+                                            pubkey: signtx.pubkey,
                                             sxid: signtx.hash
                                         }
 
@@ -1435,7 +1436,7 @@ module.exports = class ScryptaCore {
                                                 address: address,
                                                 sxid: signtx.hash,
                                                 signature: signtx.signature,
-                                                pubkey: decrypted.key
+                                                pubkey: signtx.pubkey
                                             }
                                         )
 
