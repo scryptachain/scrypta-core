@@ -56,4 +56,17 @@ describe('Addresses', async function () {
         let derive = await scrypta.deriveKeyfromXPub(xsid.xpub, "m/0/0/2")
         console.log(derive)
     })
+
+    it('Should derive same address from seed or derived xpriv', async function () {
+        this.timeout(35000)
+        scrypta.testnet = false
+        let xsid = await scrypta.buildxSid('123456', false)
+        let deriveseed = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/0/0/0")
+        console.log('DERIVED FROM SEED',deriveseed)
+        let derivexpriv = await scrypta.deriveKeyFromXPrv(deriveseed.xprv, "m/2")
+        console.log('DERIVED FROM RELATIVE XPRV',derivexpriv)
+        let testderive = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/0/0/0/2")
+        console.log('DERIVED FROM MASTER SEED', testderive)
+        console.log(derivexpriv.pub === testderive.pub)
+    })
 });

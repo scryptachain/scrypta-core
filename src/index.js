@@ -396,7 +396,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    hashtopath(hash) {
+    hashtopath(hash, hardened = false) {
         let bignum = hash.match(/.{1,2}/g)
         let num = ''
         for (let k in bignum) {
@@ -406,7 +406,11 @@ module.exports = class ScryptaCore {
         let parts = num.match(/.{1,8}/g)
         let path = 'm'
         for (let k in parts) {
-            path += '/' + parts[k]
+            path += '/'
+            path += parts[k]
+            if(hardened){
+                path += "'"
+            }
         }
         return path
     }
@@ -628,9 +632,13 @@ module.exports = class ScryptaCore {
 
             var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
             var childkey = hdkey.derive(index)
+            let derivedxprv = childkey.privateExtendedKey
+            let derivedxpub = childkey.publicExtendedKey
             var key = new CoinKey(childkey.privateKey, params)
 
             response({
+                xpub: derivedxpub,
+                xprv: derivedxprv,
                 key: childkey.publicKey.toString('hex'),
                 prv: key.privateWif,
                 pub: key.publicAddress
@@ -648,8 +656,12 @@ module.exports = class ScryptaCore {
             var hdkey = HDKey.fromExtendedKey(xprv)
             var childkey = hdkey.derive(index)
             var key = new CoinKey(childkey.privateKey, params)
+            let derivedxprv = childkey.privateExtendedKey
+            let derivedxpub = childkey.publicExtendedKey
 
             response({
+                xpub: derivedxpub,
+                xprv: derivedxprv,
                 key: childkey.publicKey.toString('hex'),
                 prv: key.privateWif,
                 pub: key.publicAddress
