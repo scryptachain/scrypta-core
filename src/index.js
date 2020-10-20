@@ -1296,6 +1296,29 @@ module.exports = class ScryptaCore {
         app.sidechain = sidechain
     }
 
+    async verifyPlanum() {
+        const app = this
+        return new Promise(async response => {
+            let idanodeverified = false
+            let check_sidechain = {}
+            while (!idanodeverified) {
+                check_sidechain = await app.get('/sidechain/check/' + app.sidechain + '/true')
+                if (check_sidechain.verified === false) {
+                    if (app.debug) {
+                        console.log('NODE ' + check_sidechain.node + ' NOT SYNCED')
+                    }
+                    app.banned.push(check_sidechain.node)
+                } else {
+                    if (app.debug) {
+                        console.log('SIDECHAIN HAVE ' + check_sidechain.reliability + '% OF RELIABILITY')
+                    }
+                    idanodeverified = true
+                }
+            }
+            response(check_sidechain)
+        })
+    }
+
     async listPlanumUnspent(address) {
         return new Promise(async response => {
             const app = this
@@ -1342,24 +1365,9 @@ module.exports = class ScryptaCore {
                 }
                 if (decrypted.prv !== undefined) {
                     const address = SIDS[0]
+                    let sidechainVerified = await app.verifyPlanum()
                     let unspent = await app.listPlanumUnspent(address)
-                    let idanodeverified = false
-                    let check_sidechain = {}
-                    while (!idanodeverified) {
-                        check_sidechain = await app.get('/sidechain/check/' + app.sidechain + '/true')
-                        if (check_sidechain.verified === false) {
-                            if (app.debug) {
-                                console.log('NODE ' + check_sidechain.node + ' NOT SYNCED')
-                            }
-                            app.banned.push(check_sidechain.node)
-                        } else {
-                            if (app.debug) {
-                                console.log('SIDECHAIN HAVE ' + check_sidechain.reliability + '% OF RELIABILITY')
-                            }
-                            idanodeverified = true
-                        }
-                    }
-                    let sidechainObj = check_sidechain.sidechain
+                    let sidechainObj = sidechainVerified.sidechain
                     const decimals = sidechainObj.decimals
                     if (unspent.length > 0) {
                         let inputs = []
@@ -1568,6 +1576,30 @@ module.exports = class ScryptaCore {
         } else {
             return false
         }
+    }
+
+    async returnPlanumBalance(address) {
+        const app = this
+        return new Promise(async response => {
+            await app.verifyPlanum()
+            let balance = await app.post("/sidechain/balance", {
+                dapp_address: address,
+                sidechain_address: app.sidechain,
+            })
+            response(balance)
+        })
+    }
+
+    async returnPlanumTransactions(address) {
+        const app = this
+        return new Promise(async response => {
+            await app.verifyPlanum()
+            let transactions = await app.post("/sidechain/transactions", {
+                dapp_address: address,
+                sidechain_address: app.sidechain,
+            })
+            response(transactions)
+        })
     }
 
     //PROGRESSIVE DATA MANAGEMENT

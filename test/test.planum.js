@@ -11,22 +11,29 @@ async function send(amount = 0.001){
         let sidechain = '6bCtBmL4wrEznMkTJRLH9xM83aa2hofXw9'
         let to = 'LchzGX6vqmanceCzNUMTk5cmnt1p6knGgT'
         let password = 'password'
+        scrypta.debug = true
         scrypta.usePlanum(sidechain)
         await scrypta.importPrivateKey(prv, password)
-        
+        let balance = await scrypta.returnPlanumBalance(pub)
+        console.log('BALANCE', balance)
+        let transactions = await scrypta.returnPlanumTransactions(pub)
+        console.log('TRANSACTIONS', transactions)
         /**
          * SEND COINS IN THE FUTURE
          */
         // let time = new Date()
         // time.setHours(time.getHours() + 4);
         // let tx = await scrypta.sendPlanumAsset(pub, password, to, amount, '', '', time.getTime())
-        scrypta.debug = true
-        let tx = await scrypta.sendPlanumAsset(pub, password, to, amount)
-        let ended = new Date().getTime()
-        let elapsed = ended - started
-        console.log('TRANSACTION CREATED IN ' + elapsed + 'ms')
-        console.log('SXID IS ' + tx)
-        response(tx)
+        if(balance > 0){
+            let tx = await scrypta.sendPlanumAsset(pub, password, to, amount)
+            let ended = new Date().getTime()
+            let elapsed = ended - started
+            console.log('TRANSACTION CREATED IN ' + elapsed + 'ms')
+            console.log('SXID IS ' + tx)
+        }else{
+            console.log('NOT ENOUGH BALANCE')
+        }
+        response(true)
     })
 }
 var i = 1
