@@ -8,7 +8,7 @@ async function send(amount = 0.001){
         scrypta.staticnodes = true
         let prv = 'Sq9GWa9vyM1HghsnVan5UJhtx2GumTaLBTHgDhCW4abjzZLmsYmr'
         let pub = 'LdRQokR1i3XDtj1V3jnCRqMPrVc7sYkeE2'
-        let sidechain = '6RQ54yHx2dARWkN8Biiw3gDjb4sB5hSHSH'
+        let sidechain = '6bCtBmL4wrEznMkTJRLH9xM83aa2hofXw9'
         let to = 'LchzGX6vqmanceCzNUMTk5cmnt1p6knGgT'
         let password = 'password'
         scrypta.usePlanum(sidechain)
@@ -20,7 +20,6 @@ async function send(amount = 0.001){
         // let time = new Date()
         // time.setHours(time.getHours() + 4);
         // let tx = await scrypta.sendPlanumAsset(pub, password, to, amount, '', '', time.getTime())
-        
         scrypta.debug = true
         let tx = await scrypta.sendPlanumAsset(pub, password, to, amount)
         let ended = new Date().getTime()

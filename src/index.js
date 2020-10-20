@@ -36,6 +36,7 @@ module.exports = class ScryptaCore {
         this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
         this.testnetIdaNodes = ['https://testnet.scryptachain.org']
         this.staticnodes = false
+        this.banned = []
         this.debug = false
         this.MAX_OPRETURN = 7500
         this.testnet = false
@@ -115,6 +116,7 @@ module.exports = class ScryptaCore {
             }
 
             if (res !== undefined && res.data !== undefined) {
+                res.node = node
                 response(res.data)
             } else {
                 console.log("ERROR ON IDANODE " + node)
@@ -133,8 +135,8 @@ module.exports = class ScryptaCore {
             try {
                 res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
                     console.log("ERROR ON IDANODE " + node)
-                    response(false)
                 })
+                res.node = node
             } catch (e) {
                 node = await app.connectNode()
                 res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
@@ -143,6 +145,7 @@ module.exports = class ScryptaCore {
                 })
             }
             if (res !== undefined && res.data !== undefined) {
+                res.data.node = node
                 response(res.data)
             } else {
                 response(false)
@@ -155,19 +158,28 @@ module.exports = class ScryptaCore {
     }
 
     async checkNode(node) {
+        const app = this
         return new Promise(response => {
-            axios.get(node + '/wallet/getinfo', { timeout: 20000 }).catch(err => {
+            if (app.banned.indexOf(node) === -1) {
+                axios.get(node + '/wallet/getinfo', { timeout: 20000 }).catch(err => {
+                    response(false)
+                }).then(result => {
+                    response(result)
+                })
+            } else {
+                if (app.debug) {
+                    console.log('NODE ' + node + ' BANNED')
+                }
                 response(false)
-            }).then(result => {
-                response(result)
-            })
+            }
         })
     }
 
     async connectNode() {
         const app = this
         return new Promise(async response => {
-            if (app.idanode === '') {
+            if (app.idanode === '' || app.banned.indexOf(app.idanode) !== -1) {
+                app.idanode = ''
                 let connected = false
                 if (app.debug === true) {
                     console.log('CONNECTING TO FIRST AVAILABLE IDANODE')
@@ -184,11 +196,15 @@ module.exports = class ScryptaCore {
                             console.log('CONNECTED TO ' + app.idanode)
                         }
                         response(node)
+                    } else {
+                        if (app.debug) {
+                            console.log('NODE RESPONSE', node)
+                        }
                     }
                 }
             } else {
                 let check = await app.checkNode(app.idanode)
-                if (check !== false && check.data.toindex <= 1) {
+                if (check !== false && check.data.toindex <= 1 && app.banned.indexOf(app.idanode) === -1) {
                     if (app.debug === true) {
                         console.log('CONNECTED IDANODE ' + app.idanode + ' STILL VALID')
                     }
@@ -248,37 +264,41 @@ module.exports = class ScryptaCore {
             let connected = false
             for (var i = 0; i < checknodes.length; i++) {
                 try {
-                    if (this.debug === true) {
-                        console.log('HANDSHAKING WITH ' + checknodes[i])
-                    }
-                    if (this.debug) {
-                        var inittime = new Date().getTime()
-                    }
-                    axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2500 }).then(async check => {
-                        let checksum = await app.returnLastChecksum(check.data.version)
-                        let isValid = true
-                        if (checksum !== false) {
-                            if (check.data.checksum !== checksum) {
-                                isValid = false
-                            }
+                    if (app.banned.indexOf(checknodes[i]) === -1) {
+                        if (this.debug === true) {
+                            console.log('HANDSHAKING WITH ' + checknodes[i])
+                            var inittime = new Date().getTime()
                         }
-                        if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && isValid) {
-                            connected = true
-                            if (check.config.url !== undefined) {
-                                var restime = new Date().getTime()
-                                if (this.debug) {
-                                    let elapsed = restime - inittime
-                                    console.log('ELAPSED ' + elapsed + 'ms TO CONNECT')
+                        axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2500 }).then(async check => {
+                            let checksum = await app.returnLastChecksum(check.data.version)
+                            let isValid = true
+                            if (checksum !== false) {
+                                if (check.data.checksum !== checksum) {
+                                    isValid = false
                                 }
-                                response(check.config.url.replace('/wallet/getinfo', ''))
                             }
-                        }
-                    }).catch(err => {
+                            if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && isValid) {
+                                connected = true
+                                if (check.config.url !== undefined) {
+                                    var restime = new Date().getTime()
+                                    if (this.debug) {
+                                        let elapsed = restime - inittime
+                                        console.log('ELAPSED ' + elapsed + 'ms TO CONNECT')
+                                    }
+                                    response(check.config.url.replace('/wallet/getinfo', ''))
+                                }
+                            }
+                        }).catch(err => {
+                            if (this.debug) {
+                                console.log(err)
+                            }
+                            response(false)
+                        })
+                    } else {
                         if (this.debug) {
-                            console.log(err)
+                            console.log('NODE ' + checknodes[i] + ' BANNED, IGNORING!')
                         }
-                        response(false)
-                    })
+                    }
                 } catch (err) {
                     if (this.debug) {
                         console.log(err)
@@ -287,6 +307,9 @@ module.exports = class ScryptaCore {
             }
             setTimeout(function () {
                 if (connected === false) {
+                    if (app.debug) {
+                        console.log('TIMEOUT ELAPSED')
+                    }
                     response(false)
                 }
             }, 1500)
@@ -408,7 +431,7 @@ module.exports = class ScryptaCore {
         for (let k in parts) {
             path += '/'
             path += parts[k]
-            if(hardened){
+            if (hardened) {
                 path += "'"
             }
         }
@@ -523,7 +546,7 @@ module.exports = class ScryptaCore {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
-            if(mnemonic === ''){
+            if (mnemonic === '') {
                 mnemonic = await this.generateMnemonic(language)
             }
             let seed = await bip39.mnemonicToSeed(mnemonic)
@@ -545,7 +568,7 @@ module.exports = class ScryptaCore {
                             wallet: walletstore,
                             label: label
                         })
-                    }else{
+                    } else {
                         await db.update('xsid', 'xpub', xpub, {
                             xpub: xpub,
                             wallet: walletstore,
@@ -591,12 +614,12 @@ module.exports = class ScryptaCore {
                 var xSIDS = key.split(':')
                 try {
                     let decrypted = await this.decryptData(xSIDS[1], password)
-                    if(decrypted !== false){
+                    if (decrypted !== false) {
                         let seed = await bip39.mnemonicToSeed(decrypted)
                         let xsid = await this.returnXKeysFromSeed(decrypted)
                         xsid.seed = seed
                         return Promise.resolve(xsid)
-                    }else{
+                    } else {
                         return Promise.resolve(false)
                     }
                 } catch (ex) {
@@ -748,7 +771,7 @@ module.exports = class ScryptaCore {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
-            if(sid.indexOf('xpub') === -1){
+            if (sid.indexOf('xpub') === -1) {
                 let SIDS = sid.split(':')
                 let pub = SIDS[0]
                 let check = await db.get('wallet', 'address', pub)
@@ -766,7 +789,7 @@ module.exports = class ScryptaCore {
                     })
                 }
                 response(sid)
-            }else{
+            } else {
                 let SIDS = sid.split(':')
                 let pub = SIDS[0]
                 let check = await db.get('xsid', 'xpub', pub)
@@ -1064,7 +1087,7 @@ module.exports = class ScryptaCore {
 
     async signRawTransaction(rawtransaction, privkey) {
         return new Promise(async response => {
-            let transaction = JSON.parse(Buffer.from(rawtransaction,'hex').toString())
+            let transaction = JSON.parse(Buffer.from(rawtransaction, 'hex').toString())
             var trx = Trx.transaction();
             trx.inputs = transaction.inputs
             trx.outputs = transaction.outputs
@@ -1279,18 +1302,20 @@ module.exports = class ScryptaCore {
             let unspent = []
 
             // PUSHING LOCAL CACHE
-            var cache = await this.returnUSXOCache()
+            /*var cache = await this.returnUSXOCache()
             if (cache !== undefined && cache.length > 0) {
                 for (var x = 0; x < cache.length; x++) {
                     unspent.push(cache[x])
                 }
-            }
+            }*/
 
             if (app.sidechain !== '') {
                 let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
                 if (unspentnode.unspent !== undefined) {
                     for (let x in unspentnode.unspent) {
-                        unspent.push(unspentnode.unspent[x])
+                        if (unspentnode.unspent[x].block !== undefined && unspentnode.unspent[x].block > 0) {
+                            unspent.push(unspentnode.unspent[x])
+                        }
                     }
                     response(unspent)
                 } else {
@@ -1317,11 +1342,25 @@ module.exports = class ScryptaCore {
                 }
                 if (decrypted.prv !== undefined) {
                     const address = SIDS[0]
-                    var sxid = ''
                     let unspent = await app.listPlanumUnspent(address)
-                    let check_sidechain = await app.post('/sidechain/get', { sidechain_address: app.sidechain })
-                    let sidechainObj = check_sidechain.sidechain[0]
-                    const decimals = sidechainObj.data.genesis.decimals
+                    let idanodeverified = false
+                    let check_sidechain = {}
+                    while (!idanodeverified) {
+                        check_sidechain = await app.get('/sidechain/check/' + app.sidechain + '/true')
+                        if (check_sidechain.verified === false) {
+                            if (app.debug) {
+                                console.log('NODE ' + check_sidechain.node + ' NOT SYNCED')
+                            }
+                            app.banned.push(check_sidechain.node)
+                        } else {
+                            if (app.debug) {
+                                console.log('SIDECHAIN HAVE ' + check_sidechain.reliability + '% OF RELIABILITY')
+                            }
+                            idanodeverified = true
+                        }
+                    }
+                    let sidechainObj = check_sidechain.sidechain
+                    const decimals = sidechainObj.decimals
                     if (unspent.length > 0) {
                         let inputs = []
                         let outputs = {}
@@ -1373,7 +1412,7 @@ module.exports = class ScryptaCore {
                         amount = app.math.round(amount, decimals)
                         if (amountinput >= amount) {
 
-                            if (to === sidechainObj.address && sidechainObj.data.burnable === false) {
+                            if (to === sidechainObj.address && sidechainObj.burnable === false) {
 
                                 if (this.debug) {
                                     console.log('ASSETS NOT BURNABLE')
@@ -1407,12 +1446,12 @@ module.exports = class ScryptaCore {
                                 } else {
                                     if (change > 0) {
                                         outputs[address] = app.math.sum(change, amount)
-                                        outputs[address] = app.math.round(outputs[address], sidechainObj.data.genesis.decimals)
+                                        outputs[address] = app.math.round(outputs[address], decimals)
                                         totaloutputs = app.math.sum(totaloutputs, change)
                                     }
                                 }
 
-                                totaloutputs = app.math.round(totaloutputs, sidechainObj.data.genesis.decimals)
+                                totaloutputs = app.math.round(totaloutputs, decimals)
 
                                 if (inputs.length > 0 && totaloutputs > 0) {
                                     let transaction = {}
@@ -1433,7 +1472,7 @@ module.exports = class ScryptaCore {
                                             timecheck = false
                                         }
                                     }
-                                    
+
                                     if (timecheck) {
                                         let tx = {
                                             transaction: transaction,
