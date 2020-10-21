@@ -1319,7 +1319,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async listPlanumUnspent(address) {
+    async listPlanumUnspent(address, safe = false) {
         return new Promise(async response => {
             const app = this
             let unspent = []
@@ -1336,7 +1336,11 @@ module.exports = class ScryptaCore {
                 let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
                 if (unspentnode.unspent !== undefined) {
                     for (let x in unspentnode.unspent) {
-                        if (unspentnode.unspent[x].block !== undefined && unspentnode.unspent[x].block > 0) {
+                        if (safe === true) {
+                            if (unspentnode.unspent[x].block !== undefined && unspentnode.unspent[x].block > 0) {
+                                unspent.push(unspentnode.unspent[x])
+                            }
+                        } else {
                             unspent.push(unspentnode.unspent[x])
                         }
                     }
