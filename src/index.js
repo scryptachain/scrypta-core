@@ -1325,12 +1325,14 @@ module.exports = class ScryptaCore {
             let unspent = []
 
             // PUSHING LOCAL CACHE
-            /*var cache = await this.returnUSXOCache()
-            if (cache !== undefined && cache.length > 0) {
-                for (var x = 0; x < cache.length; x++) {
-                    unspent.push(cache[x])
+            if (safe === false) {
+                var cache = await this.returnUSXOCache()
+                if (cache !== undefined && cache.length > 0) {
+                    for (var x = 0; x < cache.length; x++) {
+                        unspent.push(cache[x])
+                    }
                 }
-            }*/
+            }
 
             if (app.sidechain !== '') {
                 let unspentnode = await app.post('/sidechain/listunspent', { sidechain_address: app.sidechain, dapp_address: address })
@@ -1354,7 +1356,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '') {
+    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '', safe = false) {
         const app = this
         let wallet = await this.returnKey(key)
         if (wallet !== false) {
@@ -1370,7 +1372,7 @@ module.exports = class ScryptaCore {
                 if (decrypted.prv !== undefined) {
                     const address = SIDS[0]
                     let sidechainVerified = await app.verifyPlanum()
-                    let unspent = await app.listPlanumUnspent(address)
+                    let unspent = await app.listPlanumUnspent(address, safe)
                     let sidechainObj = sidechainVerified.sidechain
                     const decimals = sidechainObj.decimals
                     if (unspent.length > 0) {
