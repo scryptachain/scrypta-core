@@ -440,6 +440,9 @@ module.exports = class ScryptaCore {
 
     gettime() {
         return new Promise(async response => {
+            setTimeout(function(){
+                response(new Date().getTime())
+            }, 2500)
             let sid = await this.createAddress('TEMPORARY', false)
             let averageTimeRequest = await this.createContractRequest(sid.walletstore, 'TEMPORARY',
                 {
