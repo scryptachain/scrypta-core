@@ -638,7 +638,12 @@ module.exports = class ScryptaCore {
     returnXKeysFromSeed(seed) {
         return new Promise(async response => {
 
-            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+            try{
+                var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+            }catch(e){
+                var hdkey = HDKey.fromMasterSeed(seed)
+            }
+            
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
