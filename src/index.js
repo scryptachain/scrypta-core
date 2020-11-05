@@ -66,7 +66,7 @@ module.exports = class ScryptaCore {
                     const db = new ScryptaDB(app.isBrowser)
                     let idanodes = await db.get('nodes')
                     try {
-                        let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peers')
+                        let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peersv2')
                         let raw_nodes = nodes_git.data.split("\n")
                         let nodes = []
                         const defaultIdanodeName = 'idanodejs'
