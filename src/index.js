@@ -69,9 +69,11 @@ module.exports = class ScryptaCore {
                         let nodes_git = await axios.get('https://raw.githubusercontent.com/scryptachain/scrypta-idanode-network/master/peers')
                         let raw_nodes = nodes_git.data.split("\n")
                         let nodes = []
+                        const defaultIdanodeName = 'idanodejs'
                         for (let x in raw_nodes) {
                             let node = raw_nodes[x].split(':')
-                            let url = 'https://idanodejs' + node[0] + '.scryptachain.org'
+                            let idanodeName = node[3] ? node[3] : defaultIdanodeName
+                            let url = 'https://' + idanodeName + node[0] + '.scryptachain.org'
                             await db.put('nodes', url)
                             nodes.push(url)
                         }
