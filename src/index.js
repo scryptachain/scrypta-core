@@ -72,10 +72,12 @@ module.exports = class ScryptaCore {
                         const defaultIdanodeName = 'idanodejs'
                         for (let x in raw_nodes) {
                             let node = raw_nodes[x].split(':')
-                            let idanodeName = node[3] ? node[3] : defaultIdanodeName
-                            let url = 'https://' + idanodeName + node[0] + '.scryptachain.org'
-                            await db.put('nodes', url)
-                            nodes.push(url)
+                            if(node[0].length > 0){
+                                let idanodeName = node[3] ? node[3] : defaultIdanodeName
+                                let url = 'https://' + idanodeName + node[0] + '.scryptachain.org'
+                                await db.put('nodes', url)
+                                nodes.push(url)
+                            }
                         }
                         response(nodes)
                     } catch (e) {
@@ -121,7 +123,7 @@ module.exports = class ScryptaCore {
                 res.node = node
                 response(res.data)
             } else {
-                console.log("ERROR ON IDANODE " + node)
+                console.log("ERROR ON IDANODE WHILE POSTING" + node)
                 response(false)
             }
         })
