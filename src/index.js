@@ -1960,10 +1960,19 @@ module.exports = class ScryptaCore {
                         console.log('INDEXER REQUEST', JSON.stringify(indexrequest))
                     }
                     let maintainers = false
+                    let maintainersNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
+                    let jj = 0
                     while (maintainers === false) {
                         try {
-                            maintainers = await this.post('/contracts/run', indexrequest)
+                            if(this.debug){
+                                console.log('ASKING FOR MAINTAINERS TO ' + maintainersNodes[jj])
+                            }
+                            maintainers = await this.post('/contracts/run', indexrequest, maintainersNodes[jj])
                         } catch (e) {
+                            jj++
+                            if(maintainersNodes[jj] === undefined){
+                                jj = 0
+                            }
                             if (this.debug === true) {
                                 console.log('ERROR WHILE CONTACTING ' + node)
                             }
