@@ -622,10 +622,15 @@ module.exports = class ScryptaCore {
                 try {
                     let decrypted = await this.decryptData(xSIDS[1], password)
                     if (decrypted !== false) {
-                        let seed = await bip39.mnemonicToSeed(decrypted)
-                        let xsid = await this.returnXKeysFromSeed(decrypted)
-                        xsid.seed = seed
-                        return Promise.resolve(xsid)
+                        let split = decrypted.split(" ")
+                        if(split.length === 24){
+                            let seed = await bip39.mnemonicToSeed(decrypted)
+                            let xsid = await this.returnXKeysFromSeed(decrypted)
+                            xsid.seed = seed
+                            return Promise.resolve(xsid)
+                        }else{
+                            return Promise.resolve(false)
+                        }
                     } else {
                         return Promise.resolve(false)
                     }
