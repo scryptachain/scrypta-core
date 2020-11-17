@@ -46,3 +46,13 @@ scrypta.createAddress(password, true).then(async res => {
         scrypta.broadcast(res.pub, password, 'message', 'Now are '+ new Date() +'!')
     },2500)
 })
+
+
+scrypta.buildxSid('YourAwesomePassword', 'latin', false).then(async response => {
+    let information = 'MyUniqueAndImportantInformation'
+    let hash = await scrypta.hash(information)
+    let index = await scrypta.hashtopath(hash)
+    console.log(index)
+    let derived = await scrypta.deriveKeyFromSeed(response.seed, index)
+    console.log(derived)
+})

@@ -1092,7 +1092,9 @@ module.exports = class ScryptaCore {
                 return Promise.resolve(false) //NOT ENOUGH FUNDS
             }
         } else {
-            // console.log('NO UNSPENTS')
+            if (this.debug) {
+                console.log('NO UNSPENTS')
+            }
             return Promise.resolve(false) //NOT ENOUGH FUNDS
         }
     }
