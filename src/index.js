@@ -658,6 +658,30 @@ module.exports = class ScryptaCore {
         })
     }
 
+    deriveKeyFromMnemonic(mnemonic, index) {
+        return new Promise(async response => {
+            let params = lyraInfo.mainnet
+            if (this.testnet === true) {
+                params = lyraInfo.testnet
+            }
+            
+            let seed = await bip39.mnemonicToSeed(mnemonic)
+            var hdkey = HDKey.fromMasterSeed(seed)
+            var childkey = hdkey.derive(index)
+            let derivedxprv = childkey.privateExtendedKey
+            let derivedxpub = childkey.publicExtendedKey
+            var key = new CoinKey(childkey.privateKey, params)
+
+            response({
+                xpub: derivedxpub,
+                xprv: derivedxprv,
+                key: childkey.publicKey.toString('hex'),
+                prv: key.privateWif,
+                pub: key.publicAddress
+            })
+        })
+    }
+
     deriveKeyFromSeed(seed, index) {
         return new Promise(async response => {
             let params = lyraInfo.mainnet
