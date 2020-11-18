@@ -873,7 +873,13 @@ module.exports = class ScryptaCore {
             }
             let pubkeybuffer = Buffer.from(pubKey, 'hex')
             var sha = crypto.createHash('sha256').update(pubkeybuffer).digest()
-            let pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
+            let pubKeyHash
+            try{
+                pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
+            }catch(e){
+                pubKeyHash = crypto.createHash('ripemd160').update(sha).digest()
+                // RMD NOT WORKING
+            }
             var hash160Buf = Buffer.from(pubKeyHash, 'hex')
             response(cs.encode(hash160Buf, params.public))
         })
