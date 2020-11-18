@@ -8,7 +8,7 @@ describe('Addresses', async function () {
         this.timeout(35000)
         let xsid = await scrypta.buildxSid('123456', '', false)
         console.log('GENERATING', xsid)
-        let checksid = await scrypta.readxKey('123465', xsid.walletstore)
+        let checksid = await scrypta.readxKey('123456', xsid.walletstore)
         console.log('READING', checksid)
         let deriveseed = await scrypta.deriveKeyFromSeed(checksid.seed, "m/0'/0/1")
         console.log('DERIVING FROM SEED', deriveseed)
@@ -16,7 +16,7 @@ describe('Addresses', async function () {
         let derivemnemonic = await scrypta.deriveKeyFromMnemonic(xsid.mnemonic, "m/0'/0/1")
         console.log('DERIVED FROM MNEMONIC', derivemnemonic)
     })
-    /*
+
     it('Should create an extended seed and rigenerate same from mnemonic', async function () {
         this.timeout(35000)
         scrypta.testnet = true
@@ -74,5 +74,5 @@ describe('Addresses', async function () {
         let testderive = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/0/0/0/2")
         console.log('DERIVED FROM MASTER SEED', testderive)
         console.log(derivexpriv.pub === testderive.pub)
-    })*/
+    })
 });
