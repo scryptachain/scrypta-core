@@ -281,7 +281,7 @@ module.exports = class ScryptaCore {
                                     isValid = false
                                 }
                             }
-                            if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && check.data.index >= 0 && isValid) {
+                            if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && check.data.toindex >= 0 && isValid) {
                                 connected = true
                                 if (check.config.url !== undefined) {
                                     var restime = new Date().getTime()
