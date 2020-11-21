@@ -72,7 +72,7 @@ module.exports = class ScryptaCore {
                         const defaultIdanodeName = 'idanodejs'
                         for (let x in raw_nodes) {
                             let node = raw_nodes[x].split(':')
-                            if(node[0].length > 0){
+                            if (node[0].length > 0) {
                                 let idanodeName = node[3] ? node[3] : defaultIdanodeName
                                 let url = 'https://' + idanodeName + node[0] + '.scryptachain.org'
                                 await db.put('nodes', url)
@@ -444,7 +444,7 @@ module.exports = class ScryptaCore {
 
     gettime() {
         return new Promise(async response => {
-            setTimeout(function(){
+            setTimeout(function () {
                 response(new Date().getTime())
             }, 2500)
             let sid = await this.createAddress('TEMPORARY', false)
@@ -623,12 +623,12 @@ module.exports = class ScryptaCore {
                     let decrypted = await this.decryptData(xSIDS[1], password)
                     if (decrypted !== false) {
                         let split = decrypted.split(" ")
-                        if(split.length === 24){
+                        if (split.length === 24) {
                             let seed = await bip39.mnemonicToSeed(decrypted)
                             let xsid = await this.returnXKeysFromSeed(decrypted)
                             xsid.seed = seed
                             return Promise.resolve(xsid)
-                        }else{
+                        } else {
                             return Promise.resolve(false)
                         }
                     } else {
@@ -647,12 +647,12 @@ module.exports = class ScryptaCore {
     returnXKeysFromSeed(seed) {
         return new Promise(async response => {
 
-            try{
+            try {
                 var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
-            }catch(e){
+            } catch (e) {
                 var hdkey = HDKey.fromMasterSeed(seed)
             }
-            
+
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
@@ -669,7 +669,7 @@ module.exports = class ScryptaCore {
             if (this.testnet === true) {
                 params = lyraInfo.testnet
             }
-            
+
             let seed = await bip39.mnemonicToSeed(mnemonic)
             var hdkey = HDKey.fromMasterSeed(seed)
             var childkey = hdkey.derive(index)
@@ -874,9 +874,9 @@ module.exports = class ScryptaCore {
             let pubkeybuffer = Buffer.from(pubKey, 'hex')
             var sha = crypto.createHash('sha256').update(pubkeybuffer).digest()
             let pubKeyHash
-            try{
+            try {
                 pubKeyHash = crypto.createHash('rmd160').update(sha).digest()
-            }catch(e){
+            } catch (e) {
                 pubKeyHash = crypto.createHash('ripemd160').update(sha).digest()
                 // RMD NOT WORKING
             }
@@ -2001,13 +2001,13 @@ module.exports = class ScryptaCore {
                     let jj = 0
                     while (maintainers === false) {
                         try {
-                            if(this.debug){
+                            if (this.debug) {
                                 console.log('ASKING FOR MAINTAINERS TO ' + maintainersNodes[jj])
                             }
                             maintainers = await this.post('/contracts/run', indexrequest, maintainersNodes[jj])
                         } catch (e) {
                             jj++
-                            if(maintainersNodes[jj] === undefined){
+                            if (maintainersNodes[jj] === undefined) {
                                 jj = 0
                             }
                             if (this.debug === true) {
@@ -2067,40 +2067,52 @@ module.exports = class ScryptaCore {
                 let ready = await app.get('/wallet/getinfo', node)
                 if (ready.blocks !== undefined) {
                     try {
-                        console.log('Bootstrap connection to ' + node.replace('https://', 'https://p2p.'))
-                        global['nodes'][node] = require('socket.io-client')(node.replace('https://', 'https://p2p.'), { reconnect: true })
-                        global['nodes'][node].on('connect', function () {
-                            console.log('Connected to peer: ' + global['nodes'][node].io.uri)
-                            global['connected'][node] = true
-                        })
-                        global['nodes'][node].on('disconnect', function () {
-                            // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
-                            global['connected'][node] = false
-                        })
+                        let p2pready = true
+                        let p2pdomain = node.replace('https://', 'https://p2p.')
+                        try {
+                            await axios.get(p2pdomain + '/socket.io/?transport=polling')
+                        } catch (e) {
+                            if (this.debug) {
+                                console.log(p2pdomain + ' NOT READY FOR P2P')
+                            }
+                            p2pready = false
+                        }
+                        if (p2pready) {
+                            console.log('Bootstrap connection to ' + p2pdomain)
+                            global['nodes'][node] = require('socket.io-client')(p2pdomain, { reconnect: true })
+                            global['nodes'][node].on('connect', function () {
+                                console.log('Connected to peer: ' + global['nodes'][node].io.uri)
+                                global['connected'][node] = true
+                            })
+                            global['nodes'][node].on('disconnect', function () {
+                                // console.log('Disconnected from peer: ' + global['nodes'][node].io.uri)
+                                global['connected'][node] = false
+                            })
 
-                        //PROTOCOLS
-                        global['nodes'][node].on('message', async function (data) {
-                            if (data.pubkey === undefined && data.pubKey !== undefined) {
-                                data.pubkey = data.pubKey
-                            }
-                            let verified = await app.verifyMessage(data.pubkey, data.signature, data.message)
-                            if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
-                                global['cache'].push(data.signature)
-                                let check = await db.get('p2p', 'signature', data.signature)
-                                if (!check) {
-                                    await db.put('p2p', {
-                                        signature: data.signature,
-                                        message: data.message,
-                                        pubkey: data.pubKey,
-                                        address: data.address
-                                    }).catch(err => {
-                                        // console.log(err)
-                                    }).then(success => {
-                                        callback(data)
-                                    })
+                            //PROTOCOLS
+                            global['nodes'][node].on('message', async function (data) {
+                                if (data.pubkey === undefined && data.pubKey !== undefined) {
+                                    data.pubkey = data.pubKey
                                 }
-                            }
-                        })
+                                let verified = await app.verifyMessage(data.pubkey, data.signature, data.message)
+                                if (verified !== false && global['cache'].indexOf(data.signature) === -1) {
+                                    global['cache'].push(data.signature)
+                                    let check = await db.get('p2p', 'signature', data.signature)
+                                    if (!check) {
+                                        await db.put('p2p', {
+                                            signature: data.signature,
+                                            message: data.message,
+                                            pubkey: data.pubKey,
+                                            address: data.address
+                                        }).catch(err => {
+                                            // console.log(err)
+                                        }).then(success => {
+                                            callback(data)
+                                        })
+                                    }
+                                }
+                            })
+                        }
                     } catch (e) {
                         console.log("CAN'T CONNECT TO " + node)
                     }
