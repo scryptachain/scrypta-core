@@ -1247,7 +1247,9 @@ module.exports = class ScryptaCore {
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
-                    // console.log('NO UNSPENTS')
+                    if(this.debug){
+                        console.log('NO UNSPENTS')
+                    }
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
                 }
             } catch (error) {
@@ -1405,7 +1407,7 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '', safe = false) {
+    async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '', safe = false, inputs = []) {
         const app = this
         let wallet = await this.returnKey(key)
         if (wallet !== false) {
@@ -1425,7 +1427,6 @@ module.exports = class ScryptaCore {
                     let sidechainObj = sidechainVerified.sidechain
                     const decimals = sidechainObj.decimals
                     if (unspent.length > 0) {
-                        let inputs = []
                         let outputs = {}
                         let amountinput = 0
                         amount = app.math.round(amount, decimals)
@@ -1443,7 +1444,10 @@ module.exports = class ScryptaCore {
                         } else {
                             txtime = await app.gettime()
                         }
-
+                        let selectedInputs = []
+                        if(inputs.length > 0){
+                            selectedInputs = inputs
+                        }
                         for (let i in unspent) {
                             if (amountinput < amount) {
                                 delete unspent[i]._id
@@ -1454,11 +1458,17 @@ module.exports = class ScryptaCore {
                                 delete unspent[i].redeemed
                                 let cache = await this.returnSXIDCache()
                                 if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1 && unspent[i].time < txtime) {
-                                    inputs.push(unspent[i])
-                                    usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
-                                    let toadd = app.math.round(unspent[i].amount, decimals)
-                                    amountinput = app.math.sum(amountinput, toadd)
-                                    amountinput = app.math.round(amountinput, decimals)
+                                    let toUse = true
+                                    if(selectedInputs.length > 0 && selectedInputs.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1){
+                                        toUse = false
+                                    }
+                                    if(toUse){
+                                        inputs.push(unspent[i])
+                                        usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
+                                        let toadd = app.math.round(unspent[i].amount, decimals)
+                                        amountinput = app.math.sum(amountinput, toadd)
+                                        amountinput = app.math.round(amountinput, decimals)
+                                    }
                                 } else {
                                     if (this.debug) {
                                         console.log('CAN\'T USE UNSPENT')
