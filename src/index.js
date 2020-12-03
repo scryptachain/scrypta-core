@@ -1447,6 +1447,7 @@ module.exports = class ScryptaCore {
                         let selectedInputs = []
                         if(inputs.length > 0){
                             selectedInputs = inputs
+                            inputs = []
                         }
                         for (let i in unspent) {
                             if (amountinput < amount) {
@@ -1535,7 +1536,7 @@ module.exports = class ScryptaCore {
                                     transaction["time"] = txtime
 
                                     if (this.debug) {
-                                        console.log('TX TIME IS' + transaction['time'])
+                                        console.log('TX TIME IS ' + transaction['time'])
                                     }
                                     let signtx = await app.signMessage(decrypted.prv, JSON.stringify(transaction))
 
@@ -1553,7 +1554,9 @@ module.exports = class ScryptaCore {
                                             pubkey: signtx.pubkey,
                                             sxid: signtx.hash
                                         }
-
+                                        if(this.debug){
+                                            console.log('TRANSACTION', tx)
+                                        }
                                         let validatetransaction = await app.post('/sidechain/validate',
                                             {
                                                 transaction: tx,
@@ -1563,7 +1566,6 @@ module.exports = class ScryptaCore {
                                                 pubkey: signtx.pubkey
                                             }
                                         )
-
                                         if (validatetransaction.errors === undefined && validatetransaction.valid === true && signtx.hash !== undefined) {
                                             let sent = false
                                             let txs = []
@@ -1604,9 +1606,15 @@ module.exports = class ScryptaCore {
                                                 return Promise.resolve(false)
                                             }
                                         } else {
+                                            if(this.debug){
+                                                console.log('TRANSACTION VALIDATION FAILED')
+                                            }
                                             return Promise.resolve(false)
                                         }
                                     } else {
+                                        if(this.debug){
+                                            console.log('TIME CHECK NOT PASSED')
+                                        }
                                         return Promise.resolve(false)
                                     }
 
@@ -1681,7 +1689,7 @@ module.exports = class ScryptaCore {
                         let address = SIDS[0]
 
                         if (uuid === '') {
-                            const { v4: uuidv4 } = require('uuid');
+                            const { v4: uuidv4, validate } = require('uuid');
                             uuid = uuidv4().replace(new RegExp('-', 'g'), '.')
                         }
 
