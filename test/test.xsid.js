@@ -2,6 +2,7 @@ let ScryptaCore = require('../src/index.js')
 let scrypta = new ScryptaCore
 var assert = require('assert')
 const password = '123456'
+scrypta.testnet = true
 
 describe('Addresses', async function () {
     it('Should create an extended ScryptaID', async function () {
@@ -19,7 +20,6 @@ describe('Addresses', async function () {
 
     it('Should create an extended seed and rigenerate same from mnemonic', async function () {
         this.timeout(35000)
-        scrypta.testnet = true
         let xsid = await scrypta.buildxSid('123456', 'latin', false)
         console.log(xsid)
         let xsidnew = await scrypta.buildxSid("123456", 'latin', false, xsid.mnemonic)
@@ -30,7 +30,6 @@ describe('Addresses', async function () {
 
     it('Should generate same key from xpub or xprv', async function () {
         this.timeout(35000)
-        scrypta.testnet = false
         let xsid = await scrypta.buildxSid('123456', false)
         let derivexpriv = await scrypta.deriveKeyFromXPrv(xsid.xprv, "m/0/0/2")
         console.log(derivexpriv)
@@ -40,7 +39,6 @@ describe('Addresses', async function () {
 
     it('Should return same xpub and xprv', async function () {
         this.timeout(35000)
-        scrypta.testnet = false
         let xsid = await scrypta.buildxSid('123456', false)
         console.log(xsid)
         let xkeys = await scrypta.returnXKeysFromSeed(xsid.seed)
@@ -49,7 +47,6 @@ describe('Addresses', async function () {
 
     it('Should derive same address from seed or xprv or xpub', async function () {
         this.timeout(35000)
-        scrypta.testnet = false
         let xsid = await scrypta.buildxSid('123456', false)
         console.log(xsid)
         let deriveseed = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/2")
@@ -62,7 +59,6 @@ describe('Addresses', async function () {
 
     it('Should derive same address from seed or derived xpriv', async function () {
         this.timeout(35000)
-        scrypta.testnet = false
         let xsid = await scrypta.buildxSid('123456', false)
         let deriveseed = await scrypta.deriveKeyFromSeed(xsid.seed, "m/0/0/0/0/0")
         console.log('DERIVED FROM SEED',deriveseed)

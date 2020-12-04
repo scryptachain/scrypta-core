@@ -11,16 +11,25 @@ const { sum, round, subtract } = require('mathjs')
 const bip39 = require('@scrypta/bip39')
 const HDKey = require('hdkey')
 
+const LYRA_DERIVATION_PATH = 'm/44\'/497\'/0\'/0';
 const lyraInfo = {
     mainnet: {
         private: 0xae,
         public: 0x30,
-        scripthash: 0x0d
+        scripthash: 0x0d,
+        bip32: {
+            public: 0x0488b21e,
+            private: 0x0488ade4,
+        }
     },
     testnet: {
         private: 0xae,
         public: 0x7f,
-        scripthash: 0x13
+        scripthash: 0x13,
+        bip32: {
+            public: 0x043587cf,
+            private: 0x04358394,
+        }
     }
 }
 
@@ -557,16 +566,14 @@ module.exports = class ScryptaCore {
                 mnemonic = await this.generateMnemonic(language)
             }
             let seed = await bip39.mnemonicToSeed(mnemonic)
-            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'), this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             let xprv = hdkey.privateExtendedKey
             let xpub = hdkey.publicExtendedKey
 
             let wallethex = await this.cryptData(mnemonic.toString('hex'), password)
             let check = await this.decryptData(wallethex, password)
-
             if (check !== false && check === mnemonic.toString('hex')) {
                 var walletstore = xpub + ':' + wallethex;
-
                 if (saveKey === true) {
                     let check = await db.get('xsid', 'xpub', xpub)
                     if (!check) {
@@ -648,9 +655,9 @@ module.exports = class ScryptaCore {
         return new Promise(async response => {
 
             try {
-                var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+                var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'), this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             } catch (e) {
-                var hdkey = HDKey.fromMasterSeed(seed)
+                var hdkey = HDKey.fromMasterSeed(seed, this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             }
 
             let xprv = hdkey.privateExtendedKey
@@ -671,7 +678,7 @@ module.exports = class ScryptaCore {
             }
 
             let seed = await bip39.mnemonicToSeed(mnemonic)
-            var hdkey = HDKey.fromMasterSeed(seed)
+            var hdkey = HDKey.fromMasterSeed(seed, this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             var childkey = hdkey.derive(index)
             let derivedxprv = childkey.privateExtendedKey
             let derivedxpub = childkey.publicExtendedKey
@@ -694,7 +701,7 @@ module.exports = class ScryptaCore {
                 params = lyraInfo.testnet
             }
 
-            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'))
+            var hdkey = HDKey.fromMasterSeed(Buffer.from(seed, 'hex'), this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32)
             var childkey = hdkey.derive(index)
             let derivedxprv = childkey.privateExtendedKey
             let derivedxpub = childkey.publicExtendedKey
@@ -717,7 +724,7 @@ module.exports = class ScryptaCore {
                 params = lyraInfo.testnet
             }
 
-            var hdkey = HDKey.fromExtendedKey(xprv)
+            var hdkey = HDKey.fromExtendedKey(xprv, this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             var childkey = hdkey.derive(index)
             var key = new CoinKey(childkey.privateKey, params)
             let derivedxprv = childkey.privateExtendedKey
@@ -740,7 +747,7 @@ module.exports = class ScryptaCore {
                 params = lyraInfo.testnet
             }
 
-            var hdkey = HDKey.fromExtendedKey(xpub)
+            var hdkey = HDKey.fromExtendedKey(xpub, this.testnet ? lyraInfo.testnet.bip32 : lyraInfo.mainnet.bip32);
             var childkey = hdkey.derive(index)
 
             response({
@@ -1247,7 +1254,7 @@ module.exports = class ScryptaCore {
                         return Promise.resolve(false) //NOT ENOUGH FUNDS
                     }
                 } else {
-                    if(this.debug){
+                    if (this.debug) {
                         console.log('NO UNSPENTS')
                     }
                     return Promise.resolve(false) //NOT ENOUGH FUNDS
@@ -1445,7 +1452,7 @@ module.exports = class ScryptaCore {
                             txtime = await app.gettime()
                         }
                         let selectedInputs = []
-                        if(inputs.length > 0){
+                        if (inputs.length > 0) {
                             selectedInputs = inputs
                             inputs = []
                         }
@@ -1460,10 +1467,10 @@ module.exports = class ScryptaCore {
                                 let cache = await this.returnSXIDCache()
                                 if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1 && unspent[i].time < txtime) {
                                     let toUse = true
-                                    if(selectedInputs.length > 0 && selectedInputs.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1){
+                                    if (selectedInputs.length > 0 && selectedInputs.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
                                         toUse = false
                                     }
-                                    if(toUse){
+                                    if (toUse) {
                                         inputs.push(unspent[i])
                                         usedtx.push(unspent[i].sxid + ':' + unspent[i].vout)
                                         let toadd = app.math.round(unspent[i].amount, decimals)
@@ -1554,7 +1561,7 @@ module.exports = class ScryptaCore {
                                             pubkey: signtx.pubkey,
                                             sxid: signtx.hash
                                         }
-                                        if(this.debug){
+                                        if (this.debug) {
                                             console.log('TRANSACTION', tx)
                                         }
                                         let validatetransaction = await app.post('/sidechain/validate',
@@ -1606,13 +1613,13 @@ module.exports = class ScryptaCore {
                                                 return Promise.resolve(false)
                                             }
                                         } else {
-                                            if(this.debug){
+                                            if (this.debug) {
                                                 console.log('TRANSACTION VALIDATION FAILED')
                                             }
                                             return Promise.resolve(false)
                                         }
                                     } else {
-                                        if(this.debug){
+                                        if (this.debug) {
                                             console.log('TIME CHECK NOT PASSED')
                                         }
                                         return Promise.resolve(false)
