@@ -17,7 +17,7 @@ async function send(amount = 0.001){
         let balance = await scrypta.returnPlanumBalance(pub)
         console.log('BALANCE', balance)
         if(balance.balance > 0){
-            let tx = await scrypta.sendPlanumAsset(pub, password, to, amount)
+            let tx = await scrypta.sendPlanumAsset(pub, password, to, amount, '', '', new Date().getTime())
             let ended = new Date().getTime()
             let elapsed = ended - started
             console.log('TRANSACTION CREATED IN ' + elapsed + 'ms')

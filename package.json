@@ -14,6 +14,7 @@
     "test:static": "node test/test.static.js",
     "test:p2p": "node test/test.p2p.js",
     "test:planum": "node test/test.planum.js",
+    "test:permissioned": "node test/test.planum.permissioned.js",
     "test:tx": "node test/test.transactions.js",
     "test:nodes": "mocha test/test.nodes.js",
     "pub": "npm publish --access public"
