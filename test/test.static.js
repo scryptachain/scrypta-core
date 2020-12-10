@@ -1,16 +1,21 @@
 let ScryptaCore = require('../src/index.js')
-let scrypta = new ScryptaCore
-// scrypta.mainnetIdaNodes = ['http://localhost:3001'] //OVVERIDE IDANODES
+let scrypta = new ScryptaCore(false, ['http://localhost:3001'])
+scrypta.debug = true
 
 // SHOULD RETURN ALL IDANODES
 async function testnodes(){
    let nodes = await scrypta.returnNodes()
    console.log('SHOULD RETURN ALL NODES')
    console.log(nodes)
+   let info = null
+   while(info === null){
+    info = await scrypta.get('/wallet/getinfo')
+    console.log(info)
+   }
 }
 testnodes()
 // SHOULD CREATE ADDRESS
-
+/*
 let password = '123456'
 scrypta.createAddress(password, true).then(async res => {
     
@@ -56,3 +61,4 @@ scrypta.buildxSid('YourAwesomePassword', 'latin', false).then(async response => 
     let derived = await scrypta.deriveKeyFromSeed(response.seed, index)
     console.log(derived)
 })
+*/

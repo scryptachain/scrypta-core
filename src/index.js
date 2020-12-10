@@ -39,12 +39,22 @@ global['connected'] = {}
 global['cache'] = []
 
 module.exports = class ScryptaCore {
-    constructor(isBrowser = false) {
+    constructor(isBrowser = false, nodes = []) {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
-        this.mainnetIdaNodes = ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org']
-        this.testnetIdaNodes = ['https://testnet.scryptachain.org']
-        this.staticnodes = false
+        this.mainnetIdaNodes = []
+        this.testnetIdaNodes = []
+        if (nodes.length > 0) {
+            this.mainnetIdaNodes = nodes
+            this.testnetIdaNodes = nodes
+            this.staticnodes = true
+        } else {
+            this.staticnodes = false
+        }
+        this.nodes = {
+            mainnet: ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org'],
+            testnet: ['https://testnet.scryptachain.org']
+        }
         this.banned = []
         this.debug = false
         this.MAX_OPRETURN = 7500
@@ -84,8 +94,17 @@ module.exports = class ScryptaCore {
                             if (node[0].length > 0) {
                                 let idanodeName = node[3] ? node[3] : defaultIdanodeName
                                 let url = 'https://' + idanodeName + node[0] + '.scryptachain.org'
-                                await db.put('nodes', url)
-                                nodes.push(url)
+                                if (app.banned.indexOf(url) === -1) {
+                                    await db.put('nodes', url)
+                                    nodes.push(url)
+                                }
+                            }
+                        }
+                        if (nodes.length === 0) {
+                            if (this.testnet) {
+                                nodes = app.nodes.testnet
+                            } else {
+                                nodes = app.nodes.mainnet
                             }
                         }
                         response(nodes)
@@ -99,11 +118,26 @@ module.exports = class ScryptaCore {
                     }
                 }
             } else {
+                let toCheck = []
                 if (this.testnet === false) {
-                    response(app.mainnetIdaNodes)
+                    toCheck = app.mainnetIdaNodes
                 } else {
-                    response(app.testnetIdaNodes)
+                    toCheck = app.testnetIdaNodes
                 }
+                let nodes = []
+                for (let k in toCheck) {
+                    if (app.banned.indexOf(toCheck[k]) === -1) {
+                        nodes.push(toCheck[k])
+                    }
+                }
+                if (nodes.length === 0) {
+                    if (this.testnet) {
+                        nodes = app.nodes.testnet
+                    } else {
+                        nodes = app.nodes.mainnet
+                    }
+                }
+                response(nodes)
             }
         })
     }
@@ -275,6 +309,7 @@ module.exports = class ScryptaCore {
             let nodes = await this.returnNodes()
             var checknodes = this.shuffle(nodes)
             let connected = false
+            let timeout = 2500
             for (var i = 0; i < checknodes.length; i++) {
                 try {
                     if (app.banned.indexOf(checknodes[i]) === -1) {
@@ -282,28 +317,47 @@ module.exports = class ScryptaCore {
                             console.log('HANDSHAKING WITH ' + checknodes[i])
                             var inittime = new Date().getTime()
                         }
-                        axios.get(checknodes[i] + '/wallet/getinfo', { timeout: 2500 }).then(async check => {
-                            let checksum = await app.returnLastChecksum(check.data.version)
-                            let isValid = true
-                            if (checksum !== false) {
-                                if (check.data.checksum !== checksum) {
-                                    isValid = false
+                        axios.get(checknodes[i] + '/wallet/getinfo', { timeout: timeout }).then(async check => {
+                            if (check.config.url !== undefined) {
+                                let url = check.config.url.replace('/wallet/getinfo', '')
+                                let checksum = await app.returnLastChecksum(check.data.version)
+                                let isValid = true
+                                if (checksum !== false) {
+                                    if (check.data.checksum !== checksum) {
+                                        isValid = false
+                                        app.banned.push(url)
+                                    }
                                 }
-                            }
-                            if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && check.data.toindex >= 0 && isValid) {
-                                connected = true
-                                if (check.config.url !== undefined) {
+                                if (check.data.blocks !== undefined && connected === false && check.data.toindex <= 1 && check.data.toindex >= 0 && isValid) {
+                                    connected = true
                                     var restime = new Date().getTime()
                                     if (this.debug) {
                                         let elapsed = restime - inittime
                                         console.log('ELAPSED ' + elapsed + 'ms TO CONNECT')
                                     }
-                                    response(check.config.url.replace('/wallet/getinfo', ''))
+                                    response(url)
+                                } else {
+                                    if (this.debug) {
+                                        console.log(url + ' | (' + check.data.toindex + ' blocks) (checksum ' + isValid + ') (connected ' + connected + ')')
+                                    }
+                                    if (!connected && (!isValid || check.data.toindex > 1)) {
+                                        app.banned.push(url)
+                                        if (this.debug) {
+                                            console.log('BANNING ' + url)
+                                        }
+                                    }
+                                    response(false)
                                 }
+                            } else {
+                                response(false)
                             }
                         }).catch(err => {
+                            let errored = err.request._options.protocol + '//' + err.request._options.hostname
                             if (this.debug) {
-                                console.log(err)
+                                console.log('NODE ' + errored + ' ERROED!')
+                            }
+                            if (!connected) {
+                                app.banned.push(errored)
                             }
                             response(false)
                         })
@@ -318,14 +372,6 @@ module.exports = class ScryptaCore {
                     }
                 }
             }
-            setTimeout(function () {
-                if (connected === false) {
-                    if (app.debug) {
-                        console.log('TIMEOUT ELAPSED')
-                    }
-                    response(false)
-                }
-            }, 1500)
         })
     }
 
