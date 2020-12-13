@@ -1511,7 +1511,7 @@ module.exports = class ScryptaCore {
                                 delete unspent[i].redeemblock
                                 delete unspent[i].redeemed
                                 let cache = await this.returnSXIDCache()
-                                if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1 && unspent[i].time < txtime) {
+                                if (cache.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1 && unspent[i].time <= txtime) {
                                     let toUse = true
                                     if (selectedInputs.length > 0 && selectedInputs.indexOf(unspent[i].sxid + ':' + unspent[i].vout) === -1) {
                                         toUse = false
@@ -1595,7 +1595,7 @@ module.exports = class ScryptaCore {
 
                                     let timecheck = true
                                     for (let ji in transaction["inputs"]) {
-                                        if (transaction["inputs"][ji].time >= transaction["time"]) {
+                                        if (transaction["inputs"][ji].time > transaction["time"]) {
                                             timecheck = false
                                         }
                                     }
