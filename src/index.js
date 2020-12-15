@@ -1499,6 +1499,13 @@ module.exports = class ScryptaCore {
                         } else {
                             txtime = await app.gettime()
                         }
+                        if(txtime > 0){
+                            if(this.debug){
+                                console.log('SMART CONTRACT TIME IS VALID')
+                            }
+                        }else{
+                            txtime = new Date().getTime()
+                        }
                         let selectedInputs = []
                         if (inputs.length > 0) {
                             selectedInputs = inputs
@@ -1527,7 +1534,7 @@ module.exports = class ScryptaCore {
                                     }
                                 } else {
                                     if (this.debug) {
-                                        console.log('CAN\'T USE UNSPENT')
+                                        console.log('CAN\'T USE PLANUM UNSPENT ' + unspent[i].sxid + ':' + unspent[i].vout)
                                         if (unspent[i].time > txtime) {
                                             console.log('INPUT IS IN THE FUTURE')
                                         }
