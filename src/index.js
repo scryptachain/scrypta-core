@@ -1314,6 +1314,7 @@ module.exports = class ScryptaCore {
 
     async send(key, password, to, amount, metadata = '') {
         let wallet = await this.returnKey(key)
+        amount = parseFloat(amount)
         if (wallet !== false) {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
@@ -1463,6 +1464,7 @@ module.exports = class ScryptaCore {
     async sendPlanumAsset(key, password, to, amount, changeaddress = '', memo = '', time = '', safe = false, inputs = []) {
         const app = this
         let wallet = await this.returnKey(key)
+        amount = parseFloat(amount)
         if (wallet !== false) {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
