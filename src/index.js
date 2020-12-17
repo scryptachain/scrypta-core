@@ -39,22 +39,35 @@ global['connected'] = {}
 global['cache'] = []
 
 module.exports = class ScryptaCore {
-    constructor(isBrowser = false, nodes = []) {
+    constructor(isBrowser = false, nodes) {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
-        this.mainnetIdaNodes = []
-        this.testnetIdaNodes = []
-        if (nodes.length > 0) {
-            this.mainnetIdaNodes = nodes
-            this.testnetIdaNodes = nodes
-            this.staticnodes = true
-        } else {
-            this.staticnodes = false
-        }
+        this.staticnodes = false
+        
         this.nodes = {
             mainnet: ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org'],
             testnet: ['https://testnet.scryptachain.org']
         }
+        if (nodes !== undefined) {
+            this.staticnodes = true
+            this.nodes = {
+                mainnet: [],
+                testnet: []
+            }
+            if(nodes.mainnet !== undefined){
+                this.nodes.mainnet = nodes.mainnet
+            }else{
+                this.nodes.mainnet = nodes
+            }
+            if(nodes.testnet !== undefined){
+                this.nodes.testnet = nodes.testnet
+            }else{
+                this.nodes.testnet = nodes
+            }
+        }
+
+        this.mainnetIdaNodes = this.nodes.mainnet
+        this.testnetIdaNodes = this.nodes.testnet
         this.banned = []
         this.debug = false
         this.MAX_OPRETURN = 7500
@@ -102,9 +115,17 @@ module.exports = class ScryptaCore {
                         }
                         if (nodes.length === 0) {
                             if (this.testnet) {
-                                nodes = app.nodes.testnet
+                                if(app.nodes.testnet !== undefined){
+                                    nodes = app.nodes.testnet
+                                }else{
+                                    nodes = app.nodes
+                                }
                             } else {
-                                nodes = app.nodes.mainnet
+                                if(app.nodes.mainnet !== undefined){
+                                    nodes = app.nodes.mainnet
+                                }else{
+                                    nodes = app.nodes
+                                }
                             }
                         }
                         response(nodes)
@@ -113,16 +134,37 @@ module.exports = class ScryptaCore {
                             response(idanodes)
                         } else {
                             // FALLBACK TO STATIC NODES IF GIT FAILS AND DB IS EMPTY
-                            response(app.mainnetIdaNodes)
+                            if (this.testnet) {
+                                if(app.nodes.testnet !== undefined){
+                                    nodes = app.nodes.testnet
+                                }else{
+                                    nodes = app.nodes
+                                }
+                            } else {
+                                if(app.nodes.mainnet !== undefined){
+                                    nodes = app.nodes.mainnet
+                                }else{
+                                    nodes = app.nodes
+                                }
+                            }
+                            response(nodes)
                         }
                     }
                 }
             } else {
                 let toCheck = []
-                if (this.testnet === false) {
-                    toCheck = app.mainnetIdaNodes
+                if (this.testnet) {
+                    if(app.nodes.testnet !== undefined){
+                        toCheck = app.nodes.testnet
+                    }else{
+                        toCheck = app.nodes
+                    }
                 } else {
-                    toCheck = app.testnetIdaNodes
+                    if(app.nodes.mainnet !== undefined){
+                        toCheck = app.nodes.mainnet
+                    }else{
+                        toCheck = app.nodes
+                    }
                 }
                 let nodes = []
                 for (let k in toCheck) {
@@ -132,9 +174,17 @@ module.exports = class ScryptaCore {
                 }
                 if (nodes.length === 0) {
                     if (this.testnet) {
-                        nodes = app.nodes.testnet
+                        if(app.nodes.testnet !== undefined){
+                            nodes = app.nodes.testnet
+                        }else{
+                            nodes = app.nodes
+                        }
                     } else {
-                        nodes = app.nodes.mainnet
+                        if(app.nodes.mainnet !== undefined){
+                            nodes = app.nodes.mainnet
+                        }else{
+                            nodes = app.nodes
+                        }
                     }
                 }
                 response(nodes)
