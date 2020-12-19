@@ -3,7 +3,7 @@
 
 declare module '@scrypta/core';
 
-export class ScryptaCore {
+declare class ScryptaCore {
     staticnodes: boolean;
     testnet: boolean;
     nodes: string[];
