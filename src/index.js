@@ -1112,8 +1112,8 @@ module.exports = class ScryptaCore {
     }
 
     //TRANSACTIONS FUNCTIONS
-    async listUnspent(address) {
-        return new Promise(response => {
+    listUnspent(address) {
+        return new Promise(async response => {
             const app = this
             const node = await app.connectNode();
             var unspent = await app.get('/unspent/' + address)
@@ -1121,8 +1121,8 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async sendRawTransaction(rawtransaction) {
-        return new Promise(response => {
+    sendRawTransaction(rawtransaction) {
+        return new Promise(async response => {
             const app = this
             var txid = await app.post('/sendrawtransaction',
                 { rawtransaction: rawtransaction }
@@ -1135,8 +1135,8 @@ module.exports = class ScryptaCore {
         })
     }
 
-    async decodeRawTransaction(rawtransaction) {
-        return new Promise(response => {
+    decodeRawTransaction(rawtransaction) {
+        return new Promise(async response => {
             const app = this
             const node = await app.connectNode();
             if (node !== undefined) {
