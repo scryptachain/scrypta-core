@@ -1879,6 +1879,8 @@ module.exports = class ScryptaCore {
                                         }
                                     } else {
                                         txid = ''
+                                        await this.clearCache(true)
+                                        await this.sleep(1000)
                                     }
                                 }
                                 i++;
