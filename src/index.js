@@ -43,7 +43,7 @@ module.exports = class ScryptaCore {
         this.RAWsAPIKey = ''
         this.PubAddress = ''
         this.staticnodes = false
-        
+        this.timeout = 30000
         this.nodes = {
             mainnet: ['https://idanodejs01.scryptachain.org', 'https://idanodejs02.scryptachain.org', 'https://idanodejs03.scryptachain.org', 'https://idanodejs04.scryptachain.org', 'https://idanodejs05.scryptachain.org', 'https://idanodejs06.scryptachain.org'],
             testnet: ['https://testnet.scryptachain.org']
@@ -200,13 +200,13 @@ module.exports = class ScryptaCore {
             }
             let res
             try {
-                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => {
+                res = await axios.post(node + endpoint, params, { timeout: app.timeout }).catch(err => {
                     console.log("ERROR ON IDANODE " + node)
                     response(false)
                 })
             } catch (e) {
                 node = await app.connectNode()
-                res = await axios.post(node + endpoint, params, { timeout: 30000 }).catch(err => {
+                res = await axios.post(node + endpoint, params, { timeout: app.timeout }).catch(err => {
                     console.log("ERROR ON IDANODE " + node)
                     response(false)
                 })
@@ -230,13 +230,13 @@ module.exports = class ScryptaCore {
             }
             let res
             try {
-                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
+                res = await axios.get(node + endpoint, { timeout: app.timeout }).catch(err => {
                     console.log("ERROR ON IDANODE " + node)
                 })
                 res.node = node
             } catch (e) {
                 node = await app.connectNode()
-                res = await axios.get(node + endpoint, { timeout: 30000 }).catch(err => {
+                res = await axios.get(node + endpoint, { timeout: app.timeout }).catch(err => {
                     console.log("ERROR ON IDANODE " + node)
                     response(false)
                 })
@@ -258,7 +258,7 @@ module.exports = class ScryptaCore {
         const app = this
         return new Promise(response => {
             if (app.banned.indexOf(node) === -1) {
-                axios.get(node + '/wallet/getinfo', { timeout: 20000 }).catch(err => {
+                axios.get(node + '/wallet/getinfo', { timeout: app.timeout }).catch(err => {
                     response(false)
                 }).then(result => {
                     response(result)
@@ -359,7 +359,7 @@ module.exports = class ScryptaCore {
             let nodes = await this.returnNodes()
             var checknodes = this.shuffle(nodes)
             let connected = false
-            let timeout = 2500
+            let timeout = this.timeout
             for (var i = 0; i < checknodes.length; i++) {
                 try {
                     if (app.banned.indexOf(checknodes[i]) === -1) {
@@ -402,12 +402,14 @@ module.exports = class ScryptaCore {
                                 response(false)
                             }
                         }).catch(err => {
-                            let errored = err.request._options.protocol + '//' + err.request._options.hostname
-                            if (this.debug) {
-                                console.log('NODE ' + errored + ' ERROED!')
-                            }
-                            if (!connected) {
-                                app.banned.push(errored)
+                            if(err.request._option !== undefined){
+                                let errored = err.request._options.protocol + '//' + err.request._options.hostname
+                                if (this.debug) {
+                                    console.log('NODE ' + errored + ' ERROED!')
+                                }
+                                if (!connected) {
+                                    app.banned.push(errored)
+                                }
                             }
                             response(false)
                         })
