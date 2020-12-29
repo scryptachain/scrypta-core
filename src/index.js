@@ -54,14 +54,14 @@ module.exports = class ScryptaCore {
                 mainnet: [],
                 testnet: []
             }
-            if(nodes.mainnet !== undefined){
+            if (nodes.mainnet !== undefined) {
                 this.nodes.mainnet = nodes.mainnet
-            }else{
+            } else {
                 this.nodes.mainnet = nodes
             }
-            if(nodes.testnet !== undefined){
+            if (nodes.testnet !== undefined) {
                 this.nodes.testnet = nodes.testnet
-            }else{
+            } else {
                 this.nodes.testnet = nodes
             }
         }
@@ -115,15 +115,15 @@ module.exports = class ScryptaCore {
                         }
                         if (nodes.length === 0) {
                             if (this.testnet) {
-                                if(app.nodes.testnet !== undefined){
+                                if (app.nodes.testnet !== undefined) {
                                     nodes = app.nodes.testnet
-                                }else{
+                                } else {
                                     nodes = app.nodes
                                 }
                             } else {
-                                if(app.nodes.mainnet !== undefined){
+                                if (app.nodes.mainnet !== undefined) {
                                     nodes = app.nodes.mainnet
-                                }else{
+                                } else {
                                     nodes = app.nodes
                                 }
                             }
@@ -135,15 +135,15 @@ module.exports = class ScryptaCore {
                         } else {
                             // FALLBACK TO STATIC NODES IF GIT FAILS AND DB IS EMPTY
                             if (this.testnet) {
-                                if(app.nodes.testnet !== undefined){
+                                if (app.nodes.testnet !== undefined) {
                                     nodes = app.nodes.testnet
-                                }else{
+                                } else {
                                     nodes = app.nodes
                                 }
                             } else {
-                                if(app.nodes.mainnet !== undefined){
+                                if (app.nodes.mainnet !== undefined) {
                                     nodes = app.nodes.mainnet
-                                }else{
+                                } else {
                                     nodes = app.nodes
                                 }
                             }
@@ -154,15 +154,15 @@ module.exports = class ScryptaCore {
             } else {
                 let toCheck = []
                 if (this.testnet) {
-                    if(app.nodes.testnet !== undefined){
+                    if (app.nodes.testnet !== undefined) {
                         toCheck = app.nodes.testnet
-                    }else{
+                    } else {
                         toCheck = app.nodes
                     }
                 } else {
-                    if(app.nodes.mainnet !== undefined){
+                    if (app.nodes.mainnet !== undefined) {
                         toCheck = app.nodes.mainnet
-                    }else{
+                    } else {
                         toCheck = app.nodes
                     }
                 }
@@ -174,15 +174,15 @@ module.exports = class ScryptaCore {
                 }
                 if (nodes.length === 0) {
                     if (this.testnet) {
-                        if(app.nodes.testnet !== undefined){
+                        if (app.nodes.testnet !== undefined) {
                             nodes = app.nodes.testnet
-                        }else{
+                        } else {
                             nodes = app.nodes
                         }
                     } else {
-                        if(app.nodes.mainnet !== undefined){
+                        if (app.nodes.mainnet !== undefined) {
                             nodes = app.nodes.mainnet
-                        }else{
+                        } else {
                             nodes = app.nodes
                         }
                     }
@@ -248,10 +248,6 @@ module.exports = class ScryptaCore {
                 response(false)
             }
         })
-    }
-
-    testnet(value = true) {
-        this.testnet = value
     }
 
     async checkNode(node) {
@@ -516,6 +512,22 @@ module.exports = class ScryptaCore {
 
     // UTILITIES FUNCTION
 
+    shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+
+        while (0 !== currentIndex) {
+
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+
+        return array;
+    }
+
     hexToBytes(b) { for (var a = [], c = 0; c < b.length; c += 2)a.push(parseInt(b.substr(c, 2), 16)); return a }
 
     sleep(ms) {
@@ -641,7 +653,7 @@ module.exports = class ScryptaCore {
     }
 
     // XSID (BIP32-39) MANAGEMENT
-    async generateMnemonic(language) {
+    async generateMnemonic(language = '') {
         return new Promise(response => {
             if (language !== '') {
                 let supported = ['english', 'italian', 'spanish', 'french', 'latin']
@@ -884,7 +896,7 @@ module.exports = class ScryptaCore {
         return response;
     }
 
-    async buildWallet(password, pub, wallet, saveKey, label = '') {
+    async buildWallet(password, pub, wallet, saveKey = true, label = '') {
         const app = this
         const db = new ScryptaDB(app.isBrowser)
         return new Promise(async response => {
@@ -1003,6 +1015,7 @@ module.exports = class ScryptaCore {
                         address: SIDS[0],
                         wallet: SIDS[0] + ':' + SIDS[1]
                     })
+                    return true;
                 }
             }
         }
@@ -1101,39 +1114,45 @@ module.exports = class ScryptaCore {
     }
 
     //TRANSACTIONS FUNCTIONS
-    async listUnspent(address) {
-        const app = this
-        const node = await app.connectNode();
-        var unspent = await app.get('/unspent/' + address)
-        return unspent.unspent
-    }
-
-    async sendRawTransaction(rawtransaction) {
-        const app = this
-        var txid = await app.post('/sendrawtransaction',
-            { rawtransaction: rawtransaction }
-        ).catch(async function (err) {
-            txid = await app.post('/sendrawtransaction',
-                { rawtransaction: rawtransaction }
-            )
+    listUnspent(address) {
+        return new Promise(async response => {
+            const app = this
+            const node = await app.connectNode();
+            var unspent = await app.get('/unspent/' + address)
+            response(unspent.unspent)
         })
-        return txid.data
     }
 
-    async decodeRawTransaction(rawtransaction) {
-        const app = this
-        const node = await app.connectNode();
-        if (node !== undefined) {
-            var transaction = await axios.post(
-                node + '/decoderawtransaction',
+    sendRawTransaction(rawtransaction) {
+        return new Promise(async response => {
+            const app = this
+            var txid = await app.post('/sendrawtransaction',
                 { rawtransaction: rawtransaction }
-            ).catch(function (err) {
-                // console.log(err)
+            ).catch(async function (err) {
+                txid = await app.post('/sendrawtransaction',
+                    { rawtransaction: rawtransaction }
+                )
             })
-            return transaction.data.transaction
-        } else {
-            return Promise.resolve(false)
-        }
+            response(txid.data)
+        })
+    }
+
+    decodeRawTransaction(rawtransaction) {
+        return new Promise(async response => {
+            const app = this
+            const node = await app.connectNode();
+            if (node !== undefined) {
+                var transaction = await axios.post(
+                    node + '/decoderawtransaction',
+                    { rawtransaction: rawtransaction }
+                ).catch(function (err) {
+                    // console.log(err)
+                })
+                response(transaction.data.transaction)
+            } else {
+                response(false)
+            }
+        })
     }
 
     async createRawTransaction(from, outputs = '', metadata = '', fees = 0.001) {
@@ -1451,6 +1470,7 @@ module.exports = class ScryptaCore {
     usePlanum(sidechain) {
         const app = this
         app.sidechain = sidechain
+        return true;
     }
 
     async verifyPlanum() {
@@ -1551,11 +1571,11 @@ module.exports = class ScryptaCore {
                         } else {
                             txtime = await app.gettime()
                         }
-                        if(txtime > 0){
-                            if(this.debug){
+                        if (txtime > 0) {
+                            if (this.debug) {
                                 console.log('SMART CONTRACT TIME IS VALID')
                             }
-                        }else{
+                        } else {
                             txtime = new Date().getTime()
                         }
                         let selectedInputs = []
@@ -1861,6 +1881,8 @@ module.exports = class ScryptaCore {
                                         }
                                     } else {
                                         txid = ''
+                                        await this.clearCache(true)
+                                        await this.sleep(1000)
                                     }
                                 }
                                 i++;
@@ -1998,7 +2020,7 @@ module.exports = class ScryptaCore {
         }
     }
 
-    async update(key, password, metadata, collection = '', refID = '', protocol = '', uuid) {
+    async update(key, password, metadata, uuid, collection = '', refID = '', protocol = '') {
         return new Promise(response => {
             if (uuid !== undefined) {
                 let written = this.write(key, password, metadata, collection, refID, protocol, uuid)
@@ -2022,14 +2044,14 @@ module.exports = class ScryptaCore {
     }
 
     //SIGNING FUNCTIONS
-    async signMessage(key, message) {
+    async signMessage(privatekey, message) {
         return new Promise(response => {
             //CREATING CK OBJECT
             let params = lyraInfo.mainnet
             if (this.testnet === true) {
                 params = lyraInfo.testnet
             }
-            var ck = CoinKey.fromWif(key, params);
+            var ck = CoinKey.fromWif(privatekey, params);
             //CREATE HASH FROM MESSAGE
             let hash = CryptoJS.SHA256(message);
             let msg = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex');
@@ -2441,21 +2463,5 @@ module.exports = class ScryptaCore {
                 response(false)
             }
         })
-    }
-
-    shuffle(array) {
-        var currentIndex = array.length, temporaryValue, randomIndex;
-
-        while (0 !== currentIndex) {
-
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-
-            temporaryValue = array[currentIndex];
-            array[currentIndex] = array[randomIndex];
-            array[randomIndex] = temporaryValue;
-        }
-
-        return array;
     }
 }
