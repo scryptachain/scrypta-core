@@ -1905,7 +1905,7 @@ module.exports = class ScryptaCore {
                             if (txid !== '0000000000000000000000000000000000000000000000000000000000000000') {
                                 return Promise.resolve({
                                     uuid: uuid,
-                                    address: wallet,
+                                    address: address,
                                     fees: totalfees,
                                     collection: collection.replace('!*!', ''),
                                     refID: refID.replace('!*!', ''),
@@ -2112,7 +2112,6 @@ module.exports = class ScryptaCore {
             let wallet = await this.returnKey(key)
             if (wallet !== false) {
                 if (password !== '') {
-                    var SIDS = key.split(':');
                     let identity = await app.readKey(password, key)
                     if (identity !== false) {
                         if (request.contract !== undefined && request.function !== undefined && request.params !== undefined) {
@@ -2213,6 +2212,32 @@ module.exports = class ScryptaCore {
                 if (this.debug === true) {
                     console.log(e)
                 }
+                response(false)
+            }
+        })
+    }
+
+    writeContractRequest(key, password, request) {
+        const app = this
+        return new Promise(async response => {
+            let wallet = await this.returnKey(key)
+            if (wallet !== false) {
+                if (password !== '') {
+                    let identity = await app.readKey(password, key)
+                    if (identity !== false) {
+                        if (request.contract !== undefined && request.function !== undefined && request.params !== undefined) {
+                            let hex = Buffer.from(JSON.stringify(request)).toString('hex')
+                            let signed = await app.signMessage(identity.prv, hex)
+                            let written = await this.write(key, password, JSON.stringify(signed), '', '', '', '', request.contract)
+                            response(written)
+                        } else {
+                            response(false)
+                        }
+                    } else {
+                        response(false)
+                    }
+                }
+            } else {
                 response(false)
             }
         })
