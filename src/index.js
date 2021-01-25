@@ -398,7 +398,7 @@ module.exports = class ScryptaCore {
                                 response(false)
                             }
                         }).catch(err => {
-                            if(err.request._option !== undefined){
+                            if (err.request._option !== undefined) {
                                 let errored = err.request._options.protocol + '//' + err.request._options.hostname
                                 if (this.debug) {
                                     console.log('NODE ' + errored + ' ERROED!')
@@ -1810,7 +1810,7 @@ module.exports = class ScryptaCore {
     }
 
     //PROGRESSIVE DATA MANAGEMENT
-    async write(key, password, metadata, collection = '', refID = '', protocol = '', uuid = '') {
+    async write(key, password, metadata, collection = '', refID = '', protocol = '', uuid = '', contract = '') {
         if (password !== '' && metadata !== '') {
             let wallet = await this.returnKey(key)
             if (wallet !== false) {
@@ -1845,7 +1845,13 @@ module.exports = class ScryptaCore {
                             protocol = '!*!'
                         }
 
-                        var dataToWrite = '*!*' + uuid + collection + refID + protocol + '*=>' + metadata + '*!*'
+                        if (contract !== '') {
+                            contract = '!*!' + contract
+                        } else {
+                            contract = '!*!'
+                        }
+
+                        var dataToWrite = '*!*' + uuid + collection + refID + protocol + contract + '*=>' + metadata + '*!*'
                         if (dataToWrite.length <= MAX_OPRETURN) {
                             var txid = ''
                             var i = 0

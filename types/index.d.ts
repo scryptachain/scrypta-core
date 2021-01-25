@@ -65,7 +65,7 @@ declare class ScryptaCore {
     sendPlanumAsset(key: string, password: string, to: string, amount: number, changeaddress?: string, memo?: string, time?: number, safe?: boolean, inputs?: string[]): Promise<any>;
     returnPlanumBalance(address: string): Promise<any>;
     returnPlanumTransactions(address: string): Promise<string[]>;
-    write(key: string, password: string, metadata: string, collection?: string, refID?: string, protocol?: string, uuid?: string): Promise<any>;
+    write(key: string, password: string, metadata: string, collection?: string, refID?: string, protocol?: string, uuid?: string, contract?: string): Promise<any>;
     update(key: string, password: string, metadata: string, uuid: string, collection?: string, refID?: string, protocol?: string): Promise<any>;
     invalidate(key: string, password: string, uuid: string): Promise<any>;
     signMessage(privatekey: string, message: string): Promise<object>;
