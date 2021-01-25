@@ -1260,12 +1260,16 @@ module.exports = class ScryptaCore {
 
     async signRawTransaction(rawtransaction, privkey) {
         return new Promise(async response => {
-            let transaction = JSON.parse(Buffer.from(rawtransaction, 'hex').toString())
-            var trx = Trx.transaction();
-            trx.inputs = transaction.inputs
-            trx.outputs = transaction.outputs
-            let signed = trx.sign(privkey)
-            response(signed)
+            if (rawtransaction.length > 0) {
+                let transaction = JSON.parse(Buffer.from(rawtransaction, 'hex').toString())
+                var trx = Trx.transaction();
+                trx.inputs = transaction.inputs
+                trx.outputs = transaction.outputs
+                let signed = trx.sign(privkey)
+                response(signed)
+            } else {
+                response(false)
+            }
         })
     }
 
