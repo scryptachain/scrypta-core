@@ -2390,6 +2390,30 @@ module.exports = class ScryptaCore {
         })
     }
 
+    encryptWithRSA(pubkey, text) {
+        return new Promise(async response => {
+            try {
+                let buffer = Buffer.from(text);
+                let encrypted = crypto.publicEncrypt(pubkey, buffer);
+                let hex = encrypted.toString('hex')
+                response(hex)
+            } catch (e) {
+                response('ERROR WHILE ENCRYPTING')
+            }
+        })
+    }
+
+    decryptWithRSA(privkey, hex) {
+        return new Promise(async response => {
+            var buffer = Buffer.from(hex, "hex")
+            var decrypted = crypto.privateDecrypt(
+                { key: privkey.toString() },
+                buffer,
+            )
+            response(decrypted.toString("utf8"))
+        })
+    }
+
     setDefaultIdentity(address) {
         const app = this
         return new Promise(async response => {
