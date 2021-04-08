@@ -1544,6 +1544,7 @@ module.exports = class ScryptaCore {
         if (wallet !== false) {
             if (password !== '' && to !== '') {
                 var SIDS = wallet.split(':');
+                to = to.trim()
                 let decrypted
                 try {
                     decrypted = await this.decryptData(SIDS[1], password)
